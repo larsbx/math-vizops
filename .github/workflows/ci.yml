@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e '.[test]'
+      - name: the README's scene table has not drifted from sources.toml
+        run: python -m vizops --check
+      - run: pytest -q
+
+  estate:
+    # The scenes against the real artifacts. This is what catches an upstream
+    # generator changing shape -- a new provenance class, a renamed taxonomy,
+    # an edge type that was never declared -- so the checkouts are required
+    # rather than optional: VIZOPS_REQUIRE_SOURCES turns a missing one into a
+    # failure instead of a skip.
+    #
+    # Private siblings need a token with read access to them; `github.token`
+    # cannot see another repository. Set the ESTATE_TOKEN secret if the checkout
+    # step fails with "Repository not found".
+    runs-on: ubuntu-latest
+    env:
+      VIZOPS_REQUIRE_SOURCES: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: math-vizops
+      - uses: actions/checkout@v4
+        with:
+          repository: larsbx/finite-mandelbrot-research
+          path: finite-mandelbrot-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+      - uses: actions/checkout@v4
+        with:
+          repository: larsbx/pisot-substitution-conjecture-research
+          path: pisot-substitution-conjecture-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - working-directory: math-vizops
+        run: pip install -e '.[test]'
+      - name: every scene reads, transcribes and lays out its real artifact
+        working-directory: math-vizops
+        run: |
+          python -m vizops
+          pytest tests/test_estate.py -q
