@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -34,6 +35,10 @@ SCENES = Path(__file__).resolve().parent / "scenes.py"
 ENV_ROOT = "VIZOPS_SOURCES"
 DEFAULT_OUT = Path("out")
 QUALITIES = {"low": "-l", "medium": "-m", "high": "--hd", "uhd": "--uhd"}
+#: What counts as the thing a run was asked to produce. manim writes partial
+#: movie files beside the finished one, so a still run that only produced
+#: video has still produced nothing that was asked for.
+WANTED = {False: (".mp4", ".mov", ".webm", ".gif"), True: (".png",)}
 #: Anything vizops raises when it declines to draw.
 REFUSALS = (SourceError, AdapterError, FigureError, PaletteError)
 
@@ -78,8 +83,10 @@ def render(
     *,
     out: Path = DEFAULT_OUT,
     quality: str = "medium",
+    still: bool = False,
     timeout: float = 900.0,
 ) -> Outcome:
+    """Render `scene`, or the last frame of it when `still`."""
     try:
         figure(scene, sources)  # refuse before starting a renderer, not after
     except REFUSALS as refusal:
@@ -92,6 +99,8 @@ def render(
     out.mkdir(parents=True, exist_ok=True)
     before = {p: p.stat().st_mtime for p in out.rglob("*") if p.is_file()}
     argv = [exe, str(SCENES), scene.scene, "-w", QUALITIES[quality], "--video_dir", str(out)]
+    if still:
+        argv.append("-s")  # manim: skip the animations and save the last frame
     env = {**os.environ, ENV_ROOT: str(root(sources))}
     try:
         done = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=timeout)
@@ -99,11 +108,40 @@ def render(
         return Inconclusive(scene.id, f"manimgl did not finish within {timeout:g}s; no frame was produced or refused")
     if done.returncode != 0:
         return Refused(scene.id, f"manimgl exited {done.returncode}: {_tail(done.stderr)}")
-    written = [p for p in out.rglob("*") if p.is_file() and before.get(p) != p.stat().st_mtime]
+    written = [
+        p for p in out.rglob("*")
+        if p.is_file() and before.get(p) != p.stat().st_mtime and p.suffix.lower() in WANTED[still]
+    ]
     if not written:
-        return Inconclusive(scene.id, f"manimgl exited 0 and wrote nothing under {out}")
-    newest = max(written, key=lambda p: p.stat().st_mtime)
-    return Rendered(scene.id, str(newest), hashlib.sha256(newest.read_bytes()).hexdigest())
+        wanted = "an image" if still else "a movie"
+        return Inconclusive(scene.id, f"manimgl exited 0 and wrote {wanted} nowhere under {out}")
+    produced = _finished(written, out)
+    return Rendered(scene.id, str(produced), hashlib.sha256(produced.read_bytes()).hexdigest())
+
+
+def still(scene: Scene, sources: Path | None = None, *, into: Path, quality: str = "high", **kwargs) -> Outcome:
+    """The last frame, filed where the wiki gallery looks for it.
+
+    The gallery embeds `<scene id>.png` when the file is in the repository and
+    says so in words when it is not, so publishing a still is committing one.
+    """
+    scratch = into / ".render"
+    outcome = render(scene, sources, out=scratch, quality=quality, still=True, **kwargs)
+    if not isinstance(outcome, Rendered):
+        shutil.rmtree(scratch, ignore_errors=True)
+        return outcome
+    into.mkdir(parents=True, exist_ok=True)
+    target = into / f"{scene.id}.png"
+    shutil.copy2(outcome.output, target)
+    shutil.rmtree(scratch, ignore_errors=True)
+    return Rendered(scene.id, str(target), outcome.digest)
+
+
+def _finished(written: list[Path], out: Path) -> Path:
+    """manim writes partial movie files in a directory named for the scene;
+    the finished file sits at the top, so prefer the shallowest, then the
+    newest."""
+    return min(written, key=lambda p: (len(p.relative_to(out).parts), -p.stat().st_mtime))
 
 
 def _tail(text: str, lines: int = 3) -> str:

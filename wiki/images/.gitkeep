@@ -1,0 +1,2 @@
+Stills for the wiki gallery, produced by `python -m vizops still <scene id>`.
+Not a page: the wiki mirrors this directory as files, not as markdown.

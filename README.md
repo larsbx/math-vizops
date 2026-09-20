@@ -25,7 +25,7 @@ running in CI. Rendering is the last step and the least interesting one.
 ## What it draws
 
 <!-- BEGIN generated scene table (python -m vizops --write); do not edit between the markers -->
-<!-- Generated from sources.toml by `python -m vizops --write`. -->
+<!-- Rendered by vizops/surfaces.py from vizops/sources.toml. -->
 
 | Scene | Draws | Source artifact | manim scene |
 | --- | --- | --- | --- |
@@ -79,11 +79,16 @@ closed — a fourth outcome has to be declared in `vizops/outcome.py` beside the
 exit codes, where CI can be taught what it means. The two failure directions
 are not the same direction:
 
+<!-- BEGIN generated outcome table (python -m vizops --write); do not edit between the markers -->
+<!-- Rendered by vizops/surfaces.py from EXIT_CODES and MEANING in vizops/outcome.py. -->
+
 | Outcome | Exit | When |
 | --- | ---: | --- |
 | `rendered` | 0 | A file exists, and the outcome carries its digest. |
-| `refused` | 1 | The source is missing, empty, of an unknown format, or describes a figure the type refuses — or the renderer died. Nothing was drawn, on purpose. |
+| `refused` | 1 | The source is missing, empty, of an unknown format, or describes a figure the type refuses -- or the renderer died. Nothing was drawn, on purpose. |
 | `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH, no GL context, a timeout, or a clean exit that wrote no file. |
+
+<!-- END generated outcome table -->
 
 A machine with no renderer has not shown that a scene is broken and has not
 shown that it works. Scoring that as a pass would be a verdict the run did not
@@ -106,16 +111,44 @@ to fold the tail at the source or to facet the figure.
 
 ## The files
 
-| File | Holds |
+<!-- BEGIN generated module table (python -m vizops --write); do not edit between the markers -->
+<!-- Rendered by vizops/surfaces.py from each module's own docstring. -->
+
+| Module | Holds |
 | --- | --- |
-| `vizops/sources.toml` | Every artifact vizops draws, and nothing else. The README table above is generated from it. |
-| `vizops/sources.py` | The manifest loader, and the fail-closed read of one artifact. |
-| `vizops/adapters.py` | One transcriber per artifact format. No computation. |
-| `vizops/figure.py` | `Figure` and its refusals — the whole interface between artifacts and animation. |
-| `vizops/palette.py`, `vizops/layout.py` | Colour and geometry: pure, deterministic, tested without a renderer. |
-| `vizops/outcome.py` | The three outcomes and their exit codes. |
-| `vizops/bridge.py` | Artifact → figure, and figure → file via a `manimgl` subprocess. |
-| `vizops/scenes.py` | The only file that imports `manimlib`. |
+| `vizops/sources.py` | The registry of artifacts, and the fail-closed read of one. |
+| `vizops/adapters.py` | Artifact bytes in, `Figure` out. One adapter per artifact format. |
+| `vizops/figure.py` | The thing a scene draws, and every reason it can be refused. |
+| `vizops/layout.py` | Where the nodes go. Pure, deterministic, and testable without a renderer. |
+| `vizops/palette.py` | Colour, assigned in a fixed order and carrying no meaning on its own. |
+| `vizops/outcome.py` | What a render run reports. Three inhabitants, and the third has a name. |
+| `vizops/bridge.py` | Artifact to figure, and figure to file. |
+| `vizops/scenes.py` | The manim scenes. This file is the only place that imports manimlib. |
+| `vizops/surfaces.py` | Every surface that is generated rather than written, and the check that says none of them has drifted. |
+| `vizops/wiki.py` | Publishing `wiki/` to the repository's GitHub wiki. |
+
+<!-- END generated module table -->
+
+`vizops/sources.toml` is the only place a source is named; the tables above,
+in this file and in the wiki, are rendered from it and from the modules' own
+docstrings by `vizops/surfaces.py`.
+
+## Docs
+
+The explainers live in the [wiki](https://github.com/larsbx/math-vizops/wiki)
+— what every mark on a frame means, the scenes with their stills, every
+refusal and its fix, how to add a scene. Its pages are written in `wiki/` in
+this repository and mirrored outward:
+
+```sh
+python -m vizops --check              # README and wiki pages match their sources
+python -m vizops still c1-claim-graph # a frame for the gallery, into wiki/images/
+python -m vizops wiki --publish       # mirror wiki/ to the GitHub wiki
+```
+
+The wiki is a derived surface: an edit made in the browser is overwritten by
+the next publish, which is what keeps one page from existing in two editable
+copies.
 
 ## Rendering
 
@@ -147,7 +180,14 @@ renderer is `inconclusive` rather than red.
   names manimgl 1.7.2 exports and raises on anything else
   (`tests/manimlib_stub.py`). That says the scene's lookups and arithmetic
   hold — one box per node, one wire per edge, the stamp on the frame. It says
-  nothing about how the frame looks, which is what `render` is for.
+  nothing about how the frame looks, which is what `render` is for;
+* the wiki publisher, against a local bare repository: the mirror is exact, a
+  deleted page is deleted, a second publish is a no-op.
+
+On a push to `main`, CI also mirrors `wiki/` to the GitHub wiki. That needs a
+`WIKI_TOKEN` secret — `GITHUB_TOKEN` cannot push to a wiki — and a wiki that
+has been enabled and had its first page created; without either, the job says
+so and publishing stays a local command.
 
 ## Rulings
 

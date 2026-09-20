@@ -14,7 +14,7 @@ import pytest
 
 import artifacts
 from vizops.outcome import Inconclusive, Refused, Rendered
-from vizops.bridge import figure, figure_for, render, root
+from vizops.bridge import figure, figure_for, render, root, still
 from vizops.sources import Scene, SourceError, load
 
 FAKE = """\
@@ -95,7 +95,7 @@ def test_a_clean_exit_that_wrote_nothing_is_inconclusive(estate, scene, monkeypa
     monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, "pass")))
     outcome = render(scene, estate, out=tmp_path / "out")
     assert isinstance(outcome, Inconclusive)
-    assert "wrote nothing" in outcome.reason
+    assert "wrote a movie nowhere" in outcome.reason
 
 
 def test_a_renderer_that_dies_is_a_refusal_carrying_its_last_words(estate, scene, monkeypatch, tmp_path):
@@ -146,3 +146,40 @@ def test_a_figure_with_more_classes_than_hues_is_refused_before_the_renderer(tmp
     outcome = render(scene, crowded, out=tmp_path / "out")
     assert isinstance(outcome, Refused) and "not generated" in outcome.reason
     assert not (tmp_path / "called").exists()
+
+
+def test_a_still_run_that_produced_only_video_produced_nothing_asked_for(estate, scene, monkeypatch, tmp_path):
+    body = 'out.mkdir(parents=True, exist_ok=True); (out / "scene.mp4").write_bytes(b"frames")'
+    monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, body)))
+    outcome = render(scene, estate, out=tmp_path / "out", still=True)
+    assert isinstance(outcome, Inconclusive) and "wrote an image nowhere" in outcome.reason
+
+
+def test_a_still_is_filed_where_the_gallery_looks_for_it(estate, scene, monkeypatch, tmp_path):
+    body = 'out.mkdir(parents=True, exist_ok=True); (out / "ClaimGraph.png").write_bytes(b"pixels")'
+    monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, body)))
+    outcome = still(scene, estate, into=tmp_path / "images")
+    assert isinstance(outcome, Rendered)
+    assert outcome.output == str(tmp_path / "images" / f"{scene.id}.png")
+    assert (tmp_path / "images" / f"{scene.id}.png").read_bytes() == b"pixels"
+    assert not (tmp_path / "images" / ".render").exists()
+    assert "-s" in (tmp_path / "called").read_text()
+
+
+def test_a_refused_still_leaves_no_scratch_behind(tmp_path, scene, monkeypatch):
+    broken = artifacts.estate(tmp_path / "estate", graph_bytes=artifacts.mutate("edges.0.target", "Ghost"))
+    monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, "pass")))
+    outcome = still(scene, broken, into=tmp_path / "images")
+    assert isinstance(outcome, Refused)
+    assert not (tmp_path / "images" / ".render").exists()
+
+
+def test_the_finished_movie_wins_over_manims_partial_files(estate, scene, monkeypatch, tmp_path):
+    body = (
+        'partials = out / "ClaimGraph"; partials.mkdir(parents=True, exist_ok=True);\n'
+        '(partials / "0001.mp4").write_bytes(b"part");\n'
+        '(out / "ClaimGraph.mp4").write_bytes(b"whole")'
+    )
+    monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, body)))
+    outcome = render(scene, estate, out=tmp_path / "out")
+    assert isinstance(outcome, Rendered) and outcome.output.endswith("out/ClaimGraph.mp4")

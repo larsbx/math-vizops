@@ -23,6 +23,21 @@ DIGEST = re.compile(r"^[0-9a-f]{64}$")
 #: absence of a verdict, which CI must be able to tell apart from both.
 EXIT_CODES = {"rendered": 0, "refused": 1, "inconclusive": 2}
 
+#: When each verdict is reached. This is the source the README and the wiki
+#: both render their outcome table from, so the three explanations cannot
+#: drift apart into three different stories.
+MEANING = {
+    "rendered": "A file exists, and the outcome carries its digest.",
+    "refused": (
+        "The source is missing, empty, of an unknown format, or describes a figure the type "
+        "refuses -- or the renderer died. Nothing was drawn, on purpose."
+    ),
+    "inconclusive": (
+        "No verdict was reached: no `manimgl` on PATH, no GL context, a timeout, or a clean "
+        "exit that wrote no file."
+    ),
+}
+
 
 class Outcome:
     """Sealed base: `Rendered`, `Refused`, `Inconclusive`, and nothing else."""
