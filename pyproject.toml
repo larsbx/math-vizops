@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vizops"
+version = "0.1.0"
+description = "Animated surfaces for this estate's research artifacts, derived from them and authorizing nothing."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+# 3b1b/manim. Not a hard dependency: everything but the last step -- reading an
+# artifact, refusing a malformed one, laying the figure out -- runs without a
+# renderer, and a run with no renderer reports `inconclusive` rather than
+# passing. See README, "Fail-closed has a direction".
+render = ["manimgl>=1.7.2"]
+
+[project.scripts]
+vizops = "vizops.__main__:main"
+
+[tool.setuptools]
+packages = ["vizops"]
+
+[tool.setuptools.package-data]
+vizops = ["*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

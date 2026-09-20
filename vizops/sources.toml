@@ -1,0 +1,34 @@
+# Every artifact vizops draws, and nothing else.
+#
+# `path` names a MACHINE-READABLE surface that its own repository generates and
+# checks. vizops reads that surface and never the mathematics behind it: the
+# derivation of a status, a closure or a taxonomy belongs to the repository
+# that owns it, and re-deriving one here would produce a second answer to a
+# question that already has one. If a figure needs a fact no artifact carries,
+# the fix is upstream, in the generator.
+#
+# Nothing is pinned by digest. vizops draws whatever the checkout says today
+# and stamps that digest on the frame, so a frame is a statement about one
+# revision rather than a claim that the revision is current. Pinning belongs
+# where a consumer must not drift (`vendored.toml` in the sibling repos); a
+# picture of a moving artifact is supposed to move.
+
+format = "vizops sources 1"
+
+[[scene]]
+id = "c1-claim-graph"
+title = "C1 claim relationship graph"
+repo = "larsbx/finite-mandelbrot-research"
+path = "docs/C1_claim_relationship_graph.json"
+adapter = "typed_graph"
+scene = "ClaimGraph"
+note = "Generated from ledger.json by proof_records/generate_ledgers.py; the status label and the provenance class are that generator's, not this one's."
+
+[[scene]]
+id = "psc-object-catalogue"
+title = "PSC mathematical-object catalogue"
+repo = "larsbx/pisot-substitution-conjecture-research"
+path = "catalogues/mathematical_objects.toml"
+adapter = "object_catalogue"
+scene = "ObjectCatalogue"
+note = "The single machine-readable source of docs/mathematical-object-catalogue.md."

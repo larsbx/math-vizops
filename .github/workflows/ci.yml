@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e '.[test]'
+      - name: no generated block in the README or the wiki has drifted
+        run: python -m vizops --check
+      - run: pytest -q
+
+  estate:
+    # The scenes against the real artifacts. This is what catches an upstream
+    # generator changing shape -- a new provenance class, a renamed taxonomy,
+    # an edge type that was never declared -- so the checkouts are required
+    # rather than optional: VIZOPS_REQUIRE_SOURCES turns a missing one into a
+    # failure instead of a skip.
+    #
+    # Private siblings need a token with read access to them; `github.token`
+    # cannot see another repository. Set the ESTATE_TOKEN secret if the checkout
+    # step fails with "Repository not found".
+    runs-on: ubuntu-latest
+    env:
+      VIZOPS_REQUIRE_SOURCES: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: math-vizops
+      - uses: actions/checkout@v4
+        with:
+          repository: larsbx/finite-mandelbrot-research
+          path: finite-mandelbrot-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+      - uses: actions/checkout@v4
+        with:
+          repository: larsbx/pisot-substitution-conjecture-research
+          path: pisot-substitution-conjecture-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - working-directory: math-vizops
+        run: pip install -e '.[test]'
+      - name: every scene reads, transcribes and lays out its real artifact
+        working-directory: math-vizops
+        run: |
+          python -m vizops
+          pytest tests/test_estate.py -q
+
+  wiki:
+    # The wiki is a derived surface: `wiki/` in this repository is the source,
+    # and this job mirrors it outward. GITHUB_TOKEN cannot push to a wiki, so
+    # the job needs a WIKI_TOKEN secret with repo write access; without one it
+    # says so and the wiki is published from a developer's machine instead
+    # (`python -m vizops wiki --publish`).
+    #
+    # A wiki repository exists only once wikis are enabled for the repository
+    # and its first page has been created; until then this job reports that.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: unit
+    runs-on: ubuntu-latest
+    env:
+      WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e .
+      - name: mirror wiki/ to the GitHub wiki
+        run: |
+          if [ -z "$WIKI_TOKEN" ]; then
+            echo "No WIKI_TOKEN secret is set, so this job cannot push to the wiki."
+            echo "Publish from a checkout instead: python -m vizops wiki --publish"
+            exit 0
+          fi
+          # The credential goes in git config rather than in the remote URL, so
+          # a git error message cannot quote the token back into the log.
+          git config --global url."https://x-access-token:$WIKI_TOKEN@github.com/".insteadOf "https://github.com/"
+          python -m vizops wiki --publish --remote "https://github.com/${{ github.repository }}.wiki.git"
