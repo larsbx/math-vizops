@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:  # lets the wiki job be re-run manually, e.g. right after adding WIKI_TOKEN
 
 jobs:
   unit:
@@ -65,7 +66,7 @@ jobs:
     #
     # A wiki repository exists only once wikis are enabled for the repository
     # and its first page has been created; until then this job reports that.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: unit
     runs-on: ubuntu-latest
     env:
