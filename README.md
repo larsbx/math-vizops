@@ -185,9 +185,9 @@ renderer is `inconclusive` rather than red.
   deleted page is deleted, a second publish is a no-op.
 
 On a push to `main`, CI also mirrors `wiki/` to the GitHub wiki. That needs a
-`WIKI_TOKEN` secret — `GITHUB_TOKEN` cannot push to a wiki — and a wiki that
-has been enabled and had its first page created; without either, the job says
-so and publishing stays a local command.
+`WIKI_TOKEN_AND_AGENT_ASSISTANTS` secret — `GITHUB_TOKEN` cannot push to a
+wiki — and a wiki that has been enabled and had its first page created;
+without either, the job says so and publishing stays a local command.
 
 ## Rulings
 
