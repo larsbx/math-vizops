@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Callable, Sequence
 
 from .outcome import EXIT_CODES, MEANING
-from .sources import Scene, load
+from .sources import Scene, load, pages
 
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
@@ -115,11 +115,32 @@ def gallery(scenes: Sequence[Scene]) -> str:
     return "\n".join(out).rstrip()
 
 
+def page_gallery(_: Sequence[Scene] = ()) -> str:
+    """One section per page: how to build it, what it reads, where a published
+    copy lives, and its still if one has been committed."""
+    out: list[str] = []
+    for page in pages():
+        still = WIKI / IMAGES / f"{page.id}.png"
+        read = ", ".join(f"[`{path}`](https://github.com/{repo}/blob/main/{path}) in `{repo}`"
+                         for repo, path in page.files())
+        out += [f"### {page.title}", "", f"`python -m vizops page {page.id}` — reads {read}.", ""]
+        if page.artifact:
+            out += [f"**View it:** [{page.title}]({page.artifact}) — a published build, private to its owner "
+                    "until shared.", ""]
+        out += ([f"![{page.title}]({IMAGES}/{page.id}.png)"] if still.is_file() else
+                [f"_No still published yet._ Build the page, capture it, and commit `wiki/{IMAGES}/{page.id}.png`."])
+        out += [""]
+        if page.note:
+            out += [f"> {page.note}", ""]
+    return "\n".join(out).rstrip()
+
+
 BLOCKS = (
     Block("scene table", "vizops/sources.toml", scene_table),
     Block("outcome table", "EXIT_CODES and MEANING in vizops/outcome.py", outcome_table),
     Block("module table", "each module's own docstring", module_table),
     Block("gallery", "vizops/sources.toml and the stills in wiki/images/", gallery),
+    Block("page gallery", "the [[page]] entries in vizops/sources.toml and the stills in wiki/images/", page_gallery),
 )
 
 

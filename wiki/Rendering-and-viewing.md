@@ -67,8 +67,8 @@ python -m vizops wiki --publish
 
 ## Pages
 
-Three surfaces are HTML pages rather than manim scenes. Each lands at
-`out/<id>.html`; open it in a browser.
+Three surfaces are HTML pages rather than manim scenes — see [[Pages]] for
+what each draws. Each lands at `out/<id>.html`; open it in a browser.
 
 ```sh
 python -m vizops page mandelbrot-atlas                  # pixi run atlas-dataset in the sibling checkout

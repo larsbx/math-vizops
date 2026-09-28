@@ -109,6 +109,8 @@ class Page:
     note: str = ""
     #: Further files the page reads, as "owner/repo:path".
     also: tuple[str, ...] = ()
+    #: Where a published copy of the page can be viewed, if anywhere.
+    artifact: str = ""
 
     @property
     def checkout(self) -> str:
@@ -122,7 +124,7 @@ class Page:
 def pages(manifest: Path = MANIFEST) -> tuple[Page, ...]:
     data = tomllib.loads(manifest.read_text(encoding="utf-8"))
     fields = {f for f in Page.__dataclass_fields__}
-    optional = {"task", "note", "also"}
+    optional = {"task", "note", "also", "artifact"}
     problems = [
         f"page {entry.get('id', i)}: needs {', '.join(sorted(fields - optional))}, "
         f"may have {', '.join(sorted(optional))}, and nothing else"

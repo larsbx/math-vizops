@@ -33,6 +33,7 @@ python -m vizops render c1-claim-graph
 | --- | --- |
 | **[[Reading a frame]]** | What every mark on a rendered frame means, including the digest in the corner. |
 | **[[Scenes]]** | The scenes, with stills, and what each one's artifact is. |
+| **[[Pages]]** | The HTML pages — atlas, wake explorer, Bulbs & Ford Circles — with stills and published copies. |
 | **[[Rendering and viewing]]** | Installing `manimgl`, rendering, producing a still, why CI renders nothing. |
 | **[[Outcomes]]** | `rendered`, `refused`, `inconclusive` — and why the third one exists. |
 | **[[Why it refuses]]** | Every refusal, the message it prints, and the fix. |

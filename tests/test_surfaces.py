@@ -82,3 +82,19 @@ def test_the_gallery_embeds_a_still_that_has_been_committed(tmp_path, monkeypatc
     rendered = surfaces.gallery(SCENES)
     assert f"({surfaces.IMAGES}/{SCENES[0].id}.png)" in rendered
     assert "No still published yet" in rendered  # the other scene still has none
+
+
+def test_the_page_gallery_links_a_published_copy_only_where_one_is_declared():
+    from vizops.sources import pages
+
+    rendered = surfaces.page_gallery()
+    for page in pages():
+        assert f"python -m vizops page {page.id}" in rendered
+        assert (page.artifact in rendered) if page.artifact else True
+    assert rendered.count("**View it:**") == sum(1 for p in pages() if p.artifact)
+
+
+def test_the_page_gallery_says_so_when_a_page_has_no_still(tmp_path, monkeypatch):
+    monkeypatch.setattr(surfaces, "WIKI", tmp_path)
+    rendered = surfaces.page_gallery()
+    assert "No still published yet" in rendered and "![" not in rendered

@@ -61,6 +61,7 @@ title = "Bulbs & Ford Circles"
 repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
 path = "experiments/data/center_certificates.json"
 builder = "bulbs"
+artifact = "https://claude.ai/artifact/X6cYWjyUe8VZLRL75dorKh"
 also = [
   "larsbx/mandelbrot-bulbs-and-ford-circles-research:experiments/data/antipode_certificates.json",
   "larsbx/mandelbrot-bulbs-and-ford-circles-research:experiments/data/kappa_q1009.json",
