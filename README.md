@@ -37,6 +37,25 @@ running in CI. Rendering is the last step and the least interesting one.
 Sibling checkouts are looked for beside this repository — `../<repo-name>` —
 or wherever `--sources` / `$VIZOPS_SOURCES` points.
 
+## The atlas page
+
+One surface is not a manim scene: the ray address atlas for
+`finite-mandelbrot-research`, a single self-contained HTML page with the
+parameter plane, the circle of addresses and the incidence package.
+
+```sh
+python -m vizops atlas                                  # runs the emitter with pixi in the sibling checkout
+python -m vizops atlas --dataset dataset.json           # or reads its output: `pixi run atlas-dataset > dataset.json`
+```
+
+Its exact sections are that repository's `pixi run atlas-dataset` output,
+refused if a section is missing or a float has leaked in. Its positions are
+traced here by `vizops/atlas/trace.py` — floating point, the analytic
+machinery that repository's kernel refuses, and a placement rather than a
+claim. The exclusion-box verdicts are upstream's oracle, loaded from the
+checkout and never copied. The page carries the same stamp and caveat as a
+frame; the page is written to `out/mandelbrot-atlas.html` and not committed.
+
 ## Draw the artifact, never the mathematics
 
 Each adapter in `vizops/adapters.py` transcribes fields. The classes on a
@@ -86,7 +105,7 @@ are not the same direction:
 | --- | ---: | --- |
 | `rendered` | 0 | A file exists, and the outcome carries its digest. |
 | `refused` | 1 | The source is missing, empty, of an unknown format, or describes a figure the type refuses -- or the renderer died. Nothing was drawn, on purpose. |
-| `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH, no GL context, a timeout, or a clean exit that wrote no file. |
+| `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH (or, for the atlas, no `pixi`), no GL context, a timeout, or a clean exit that wrote no file. |
 
 <!-- END generated outcome table -->
 
@@ -126,10 +145,13 @@ to fold the tail at the source or to facet the figure.
 | `vizops/scenes.py` | The manim scenes. This file is the only place that imports manimlib. |
 | `vizops/surfaces.py` | Every surface that is generated rather than written, and the check that says none of them has drifted. |
 | `vizops/wiki.py` | Publishing `wiki/` to the repository's GitHub wiki. |
+| `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
+| `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
 
 <!-- END generated module table -->
 
-`vizops/sources.toml` is the only place a source is named; the tables above,
+`vizops/sources.toml` is the only place a source is named — scenes as
+`[[scene]]`, the atlas as `[[page]]`; the tables above,
 in this file and in the wiki, are rendered from it and from the modules' own
 docstrings by `vizops/surfaces.py`.
 

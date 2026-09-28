@@ -79,7 +79,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("command", nargs="?", default="report", choices=("report", "render", "still", "atlas", "wiki"))
     parser.add_argument("ids", nargs="*", help="scene ids; all of them by default")
     parser.add_argument("--sources", type=Path, default=None, help="directory holding the sibling checkouts")
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="where manimgl and `atlas` write")
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="where manimgl writes")
     parser.add_argument("--into", type=Path, default=STILLS, help="where `still` files its images")
     parser.add_argument("--dataset", type=Path, default=None,
                         help="with `atlas`: the emitter's JSON, instead of running it with pixi")

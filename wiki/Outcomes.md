@@ -11,7 +11,7 @@ CI can be taught what it means, rather than invented at a call site.
 | --- | ---: | --- |
 | `rendered` | 0 | A file exists, and the outcome carries its digest. |
 | `refused` | 1 | The source is missing, empty, of an unknown format, or describes a figure the type refuses -- or the renderer died. Nothing was drawn, on purpose. |
-| `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH, no GL context, a timeout, or a clean exit that wrote no file. |
+| `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH (or, for the atlas, no `pixi`), no GL context, a timeout, or a clean exit that wrote no file. |
 
 <!-- END generated outcome table -->
 

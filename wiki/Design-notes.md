@@ -71,6 +71,8 @@ class is refused rather than given a generated hue.
 | `vizops/scenes.py` | The manim scenes. This file is the only place that imports manimlib. |
 | `vizops/surfaces.py` | Every surface that is generated rather than written, and the check that says none of them has drifted. |
 | `vizops/wiki.py` | Publishing `wiki/` to the repository's GitHub wiki. |
+| `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
+| `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
 
 <!-- END generated module table -->
 

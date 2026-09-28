@@ -65,6 +65,21 @@ python -m vizops wiki --publish
   revision is a wiki nobody can clone; a still plus the command that made it
   is reproducible and small.
 
+## The atlas
+
+The ray address atlas is an HTML page rather than a manim scene, built from
+`finite-mandelbrot-research`'s Mojo emitter:
+
+```sh
+python -m vizops atlas                          # pixi run atlas-dataset in the sibling checkout
+python -m vizops atlas --dataset dataset.json   # or its saved output
+```
+
+It lands at `out/mandelbrot-atlas.html`; open it in a browser. No `pixi` and no
+`--dataset` is `inconclusive`; a missing checkout, a malformed dataset or a
+traced position that disagrees with its exact type is `refused` and writes
+nothing — see [[Outcomes]].
+
 ## Why CI renders nothing
 
 A headless runner has no GL context and usually no Pango. CI therefore runs

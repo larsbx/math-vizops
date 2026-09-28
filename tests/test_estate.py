@@ -14,7 +14,8 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops.sources import load
+from vizops.atlas.build import oracle
+from vizops.sources import load, pages
 
 REQUIRED = os.environ.get("VIZOPS_REQUIRE_SOURCES") == "1"
 
@@ -32,3 +33,16 @@ def test_the_real_artifact_draws(scene):
     assert len(set(placed.values())) == len(placed)
     assert {n.term for n in drawn.nodes} <= set(hues)
     assert drawn.used_kinds()
+
+
+@pytest.mark.parametrize("page", pages(), ids=lambda p: p.id)
+def test_the_real_exclusion_oracle_decides_the_pinned_box(page):
+    """The atlas borrows its box verdicts from upstream rather than copying the
+    oracle, so this is where a renamed or reshaped oracle is caught."""
+    checkout = root() / page.checkout
+    if not checkout.is_dir():
+        message = f"no checkout of {page.repo} under {root()}"
+        pytest.fail(message) if REQUIRED else pytest.skip(message)
+    ie = oracle(checkout)
+    excluded, forbidden, failures = ie.excluded_count(ie.c_minus_2_box(), 2, 1, 3)
+    assert excluded == forbidden and not failures

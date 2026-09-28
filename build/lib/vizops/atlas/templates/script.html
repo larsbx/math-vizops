@@ -1,0 +1,445 @@
+<script>
+const DATA = __DATA__;
+
+const fmt = (v, n = 6) => (v < 0 ? "" : "+") + v.toFixed(n);
+const frac = (p, q) => p + "/" + q;
+
+/* group addresses that land at one parameter: several rays may share a point */
+const points = new Map();
+for (const m of DATA.misiurewicz) {
+  const key = m.re.toFixed(7) + "," + m.im.toFixed(7);
+  if (!points.has(key)) points.set(key, { re: m.re, im: m.im, l: m.l, k: m.k, addresses: [] });
+  points.get(key).addresses.push(m);
+}
+const misPoints = [...points.values()];
+
+const VIEWS = {
+  "v-all":    { cx: -0.65,      cy: 0,          w: 3.2,  note: "re -2.25 to 0.95" },
+  "v-rabbit": { cx: -0.1225612, cy: 0.7448618,  w: 0.55, note: "rabbit, period 3" },
+  "v-tip":    { cx: -1.98,      cy: 0,          w: 0.34, note: "antenna tip, 1/2 lands at -2" },
+  "v-p4":     { cx: -1.94,      cy: 0,          w: 0.34, note: "primitive period 4" }
+};
+let view = { ...VIEWS["v-all"] };
+let show = { comp: true, mis: true, cert: true };
+let selected = null;
+
+const canvas = document.getElementById("plot");
+const ctx = canvas.getContext("2d", { willReadFrequently: false });
+const marks = document.getElementById("marks");
+let W = 0, H = 0;
+
+const rgb = (name) => {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const h = v.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+};
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+function bounds() {
+  const h = view.w * (H / W || 5 / 6);
+  return { x0: view.cx - view.w / 2, x1: view.cx + view.w / 2, y0: view.cy - h / 2, y1: view.cy + h / 2 };
+}
+const toPx = (re, im) => {
+  const b = bounds();
+  return [((re - b.x0) / (b.x1 - b.x0)) * W, (1 - (im - b.y0) / (b.y1 - b.y0)) * H];
+};
+
+let pending = null;
+function draw() {
+  if (!W || !H) return;
+  const lo = rgb("--plot-lo"), mid = rgb("--plot-mid"), hi = rgb("--plot-hi"), ins = rgb("--plot-in");
+  const b = bounds();
+  const maxIter = Math.min(700, Math.round(180 * (1 + Math.log2(3.2 / view.w))));
+  const img = ctx.createImageData(W, H);
+  const px = img.data;
+
+  const pass = (step) => {
+    for (let py = 0; py < H; py += step) {
+      const ci = b.y1 - ((py + 0.5) / H) * (b.y1 - b.y0);
+      for (let pxl = 0; pxl < W; pxl += step) {
+        const cr = b.x0 + ((pxl + 0.5) / W) * (b.x1 - b.x0);
+        let zr = 0, zi = 0, n = 0, zr2 = 0, zi2 = 0;
+        while (zr2 + zi2 <= 64 && n < maxIter) { zi = 2 * zr * zi + ci; zr = zr2 - zi2 + cr; zr2 = zr * zr; zi2 = zi * zi; n++; }
+        let col;
+        if (n >= maxIter) col = ins;
+        else {
+          const t = Math.pow(Math.min(1, (n + 1 - Math.log2(Math.log2(Math.sqrt(zr2 + zi2)))) / maxIter), 0.34);
+          col = t < 0.5 ? mix(lo, mid, t * 2) : mix(mid, hi, (t - 0.5) * 2);
+        }
+        for (let dy = 0; dy < step && py + dy < H; dy++)
+          for (let dx = 0; dx < step && pxl + dx < W; dx++) {
+            const o = ((py + dy) * W + (pxl + dx)) * 4;
+            px[o] = col[0]; px[o + 1] = col[1]; px[o + 2] = col[2]; px[o + 3] = 255;
+          }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  };
+
+  pass(5);                                   /* immediate, so the page is never blank */
+  if (pending) cancelAnimationFrame(pending);
+  pending = requestAnimationFrame(() => { pass(1); pending = null; });
+  document.getElementById("viewnote").textContent = view.note + "  ·  " + maxIter + " iterations";
+}
+
+function plotMarks() {
+  const b = bounds();
+  const inside = (re, im) => re >= b.x0 && re <= b.x1 && im >= b.y0 && im <= b.y1;
+  const parts = [];
+  const mark = (re, im, r, cls, id, label) => {
+    const [x, y] = toPx(re, im);
+    parts.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="var(--${cls})"` +
+      ` stroke="var(--plot-in)" stroke-width="1" data-id="${id}" tabindex="0" role="button"><title>${label}</title></circle>`);
+  };
+  if (show.comp) DATA.components.forEach((c, i) => {
+    if (inside(c.re, c.im)) mark(c.re, c.im, 5, "periodic", "c" + i,
+      `period ${c.period}${c.name ? ", " + c.name : ""} — rays ${c.rays.map(r => frac(r[0], r[1])).join(" and ")}`);
+  });
+  if (show.cert) DATA.certificates.forEach((c, i) => {
+    const [x0, y0] = toPx(c.re_f[0], c.im_f[1]), [x1, y1] = toPx(c.re_f[1], c.im_f[0]);
+    const w = Math.max(x1 - x0, 7), h = Math.max(y1 - y0, 7);   /* a box below a pixel still has a place */
+    if (x1 < 0 || y1 < 0 || x0 > W || y0 > H) return;
+    parts.push(`<rect x="${(x0 - (w - (x1 - x0)) / 2).toFixed(1)}" y="${(y0 - (h - (y1 - y0)) / 2).toFixed(1)}"` +
+      ` width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="none" stroke="var(--certificate)"` +
+      ` stroke-width="1.6" data-id="x${i}" tabindex="0" role="button"><title>${c.name} — ${c.excluded}/${c.forbidden} excluded</title></rect>`);
+  });
+  if (show.mis) misPoints.forEach((p, i) => {
+    if (inside(p.re, p.im)) mark(p.re, p.im, 3.6, "preperiodic", "m" + i,
+      `type (${p.l},${p.k}) — ${p.addresses.map(a => frac(a.num, a.den)).join(", ")}`);
+  });
+  marks.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  marks.innerHTML = parts.join("");
+}
+
+/* the orbit of p/q under doubling: the numerators are 2^i p mod q */
+function orbit(num, den, cap = 16) {
+  const out = [];
+  let a = num % den;
+  for (let i = 0; i < cap; i++) { out.push(a); a = (2 * a) % den; if (out.length > 1 && a === out[0]) break; }
+  return out;
+}
+function orbitLine(num, den, l, k) {
+  const seq = orbit(num, den, l + k + 2).slice(0, l + k).map(a => a + "/" + den);
+  return seq.slice(0, l).join(" → ") + " → [" + seq.slice(l).join(" → ") + "]↺";
+}
+
+function inspect(kind, index, reveal = true) {
+  selected = { kind, index };
+  const box = document.getElementById("inspector");
+  const rows = [];
+  if (kind === "x") {
+    const c = DATA.certificates[index];
+    rows.push(["kind", "exclusion certificate"]);
+    rows.push(["object", c.name]);
+    rows.push(["critical-orbit type", "(" + c.l + ", " + c.k + ")"]);
+    rows.push(["horizon", "H = " + c.horizon]);
+    rows.push(["Re c", "[" + c.re[0] + ",<br>&nbsp;" + c.re[1] + "]"]);
+    rows.push(["Im c", "[" + c.im[0] + ",<br>&nbsp;" + c.im[1] + "]"]);
+    rows.push(["as decimals", fmt(c.re_f[0], 9) + " … " + fmt(c.re_f[1], 9) + "<br>" +
+      fmt(c.im_f[0], 9) + " … " + fmt(c.im_f[1], 9) + "i"]);
+    rows.push(["angles", c.theta.map(a => frac(a[0], a[1])).join("  ·  ")]);
+    rows.push(["excluded", c.excluded + " of " + c.forbidden + " forbidden collisions" +
+      (c.failures.length ? " — undecided: " + c.failures.map(f => "(" + f[0] + "," + f[1] + ")").join(" ") : "")]);
+    rows.push(["proves", "no forbidden Q_j − Q_i vanishes on this box"]);
+    rows.push(["does not prove", "that a parameter of this type lies in it"]);
+    rows.push(["note", c.note]);
+  } else if (kind === "c") {
+    const c = DATA.components[index];
+    rows.push(["kind", "hyperbolic component"]);
+    if (c.name) rows.push(["name", c.name]);
+    rows.push(["period", c.period]);
+    rows.push(["root rays", c.rays.map(r => frac(r[0], r[1])).join("  ·  ")]);
+    rows.push(["centre", fmt(c.re, 10) + "  " + fmt(c.im, 10) + "i"]);
+    rows.push(["solves", "f_c^" + c.period + "(0) = 0"]);
+    const kn = DATA.kneading.find(r => c.rays.some(y => y[0] === r.theta[0] && y[1] === r.theta[1]));
+    if (kn) {
+      rows.push(["kneading ν", kn.nu]);
+      rows.push(["internal address", kn.address.join(" → ")]);
+      rows.push(["digits of θ", kn.block]);
+    }
+    rows.push(["orbit of " + frac(c.rays[0][0], c.rays[0][1]),
+      orbit(c.rays[0][0], c.rays[0][1], c.period + 1).slice(0, c.period)
+        .map(a => a + "/" + c.rays[0][1]).join(" → ") + " ↺"]);
+  } else {
+    const p = misPoints[index];
+    rows.push(["kind", "Misiurewicz point"]);
+    rows.push(["exact type", "(" + p.l + ", " + p.k + ")"]);
+    rows.push(["preperiod", p.l]);
+    rows.push(["period", p.k]);
+    rows.push(["addresses", p.addresses.map(a => frac(a.num, a.den)).join("  ·  ")]);
+    rows.push(["denominator", p.addresses[0].den + " = 2^" + p.l + "(2^" + p.k + "−1)"]);
+    rows.push(["parameter", fmt(p.re, 10) + "  " + fmt(p.im, 10) + "i"]);
+    rows.push(["satisfies", "f^" + (p.l + p.k) + "(c) = f^" + p.l + "(c)"]);
+    rows.push(["critical-orbit type", "(" + (p.l + 1) + ", " + p.k + ")"]);
+    rows.push(["orbit of " + frac(p.addresses[0].num, p.addresses[0].den),
+      orbitLine(p.addresses[0].num, p.addresses[0].den, p.l, p.k)]);
+  }
+  box.innerHTML = "<dl class='rec'>" + rows.map(([a, b]) =>
+    `<dt>${a}</dt><dd>${b}</dd>`).join("") + "</dl>";
+  document.querySelectorAll("tbody tr[aria-selected]").forEach(tr => tr.removeAttribute("aria-selected"));
+  const row = document.querySelector(`tbody tr[data-id="${kind}${index}"]`);
+  if (row) { row.setAttribute("aria-selected", "true"); if (reveal) row.scrollIntoView({ block: "nearest" }); }
+}
+
+/* ---- tables ---------------------------------------------------------------- */
+document.querySelector("#counts tbody").innerHTML = DATA.counts.map(r =>
+  `<tr><td class="n">${r.l}</td><td class="n">${r.k}</td><td class="n">${r.den}</td>` +
+  `<td class="n">${r.count}</td><td class="n">${r.enumerated}</td>` +
+  `<td class="ok">${r.count === r.enumerated ? "agree" : "differ"}</td></tr>`).join("");
+
+const addrRows = [];
+DATA.components.forEach((c, i) => c.rays.forEach(r => addrRows.push(
+  { id: "c" + i, addr: frac(r[0], r[1]), type: "period " + c.period, kind: "component",
+    re: c.re, im: c.im, sort: [0, c.period, r[0] / r[1]] })));
+misPoints.forEach((p, i) => p.addresses.forEach(a => addrRows.push(
+  { id: "m" + i, addr: frac(a.num, a.den), type: "(" + p.l + ", " + p.k + ")", kind: "Misiurewicz",
+    re: p.re, im: p.im, sort: [1, p.l * 10 + p.k, a.num / a.den] })));
+addrRows.sort((a, b) => a.sort[0] - b.sort[0] || a.sort[1] - b.sort[1] || a.sort[2] - b.sort[2]);
+document.querySelector("#addresses tbody").innerHTML = addrRows.map(r =>
+  `<tr data-id="${r.id}"><td class="n">${r.addr}</td><td class="n">${r.type}</td><td>${r.kind}</td>` +
+  `<td class="n">${fmt(r.re, 5)}</td><td class="n">${fmt(r.im, 5)}</td></tr>`).join("");
+
+document.querySelector("#tunings tbody").innerHTML = DATA.tunings.map(t =>
+  `<tr><td>${t.component}</td><td class="n">${frac(t.lo[0], t.lo[1])}, ${frac(t.hi[0], t.hi[1])}</td>` +
+  `<td class="n">${frac(t.theta[0], t.theta[1])}</td><td class="n">${frac(t.tuned[0], t.tuned[1])}</td>` +
+  `<td class="n">${t.period ?? "—"}</td></tr>`).join("");
+
+document.querySelector("#components tbody").innerHTML = DATA.components.map((c, i) =>
+  `<tr data-id="c${i}"><td class="n">${c.period}</td>` +
+  `<td class="n">${c.rays.map(r => frac(r[0], r[1])).join(", ")}</td>` +
+  `<td class="n">${fmt(c.re, 6)} ${fmt(c.im, 6)}i</td><td>${c.name ?? ""}</td></tr>`).join("");
+
+/* ---- interaction ----------------------------------------------------------- */
+const pick = (id) => inspect(id[0], +id.slice(1));
+marks.addEventListener("click", e => { const t = e.target.closest("[data-id]"); if (t) pick(t.dataset.id); });
+marks.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const t = e.target.closest("[data-id]"); if (t) { e.preventDefault(); pick(t.dataset.id); }
+});
+document.querySelectorAll("tbody").forEach(tb => tb.addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]"); if (tr) pick(tr.dataset.id);
+}));
+for (const id of Object.keys(VIEWS)) document.getElementById(id).addEventListener("click", () => {
+  view = { ...VIEWS[id] };
+  Object.keys(VIEWS).forEach(k => document.getElementById(k).setAttribute("aria-pressed", String(k === id)));
+  draw(); plotMarks();
+});
+const toggle = (btn, key) => document.getElementById(btn).addEventListener("click", e => {
+  show[key] = !show[key]; e.currentTarget.setAttribute("aria-pressed", String(show[key])); plotMarks();
+});
+toggle("t-comp", "comp"); toggle("t-mis", "mis"); toggle("t-cert", "cert");
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = Math.max(1, Math.round(r.width * dpr)); H = Math.max(1, Math.round(r.height * dpr));
+  canvas.width = W; canvas.height = H;
+  draw(); plotMarks();
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { draw(); });
+new MutationObserver(() => draw()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+resize();
+
+/* ---- the circle of addresses ------------------------------------------------ */
+const CR = 130, CC = 160;                       /* radius and centre in viewBox units */
+const at = (num, den) => {
+  const a = 2 * Math.PI * (num / den);
+  return [CC + CR * Math.cos(a), CC - CR * Math.sin(a)];
+};
+let graphIndex = DATA.graphs.findIndex(g => g.l === 1 && g.k === 3);
+if (graphIndex < 0) graphIndex = 0;
+let vertexPick = null;
+
+function drawCircle() {
+  const g = DATA.graphs[graphIndex];
+  const cat = new Set(g.catalogue);
+  const onCycle = new Set(g.cycle_pairs.map(p => p.join(",")));
+  const chord = (a, b, cls) => {
+    const [x0, y0] = at(a, g.den), [x1, y1] = at(b, g.den);
+    return `<line class="${cls}" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`;
+  };
+  const parts = [`<circle class="ring" cx="${CC}" cy="${CC}" r="${CR}"/>`];
+  for (const [a, b] of g.nonproductive_pairs) if (!onCycle.has(a + "," + b)) parts.push(chord(a, b, "bad"));
+  for (const [a, b] of g.nonproductive_pairs) if (onCycle.has(a + "," + b)) parts.push(chord(a, b, "cyc"));
+  for (const [a, b] of g.separators) parts.push(chord(a, b, "sep"));
+  for (const s of new Set(g.separators.flat())) {
+    const [x, y] = at(s, g.den);
+    parts.push(`<rect x="${(x - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="6" height="6" fill="var(--certificate)"/>`);
+  }
+  for (const v of g.vertices) {
+    const [x, y] = at(v, g.den);
+    const known = cat.has(v);
+    parts.push(`<circle class="vtx" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${known ? 4.2 : 3}"` +
+      ` fill="${known ? "var(--preperiodic)" : "var(--surface)"}" stroke="${known ? "var(--surface)" : "var(--muted)"}"` +
+      ` stroke-width="1.2" data-v="${v}" tabindex="0" role="button"><title>${v}/${g.den}</title></circle>`);
+    const [lx, ly] = [CC + (CR + 13) * Math.cos(2 * Math.PI * v / g.den), CC - (CR + 13) * Math.sin(2 * Math.PI * v / g.den)];
+    if (g.vertices.length <= 26)
+      parts.push(`<text x="${lx.toFixed(1)}" y="${(ly + 3).toFixed(1)}" text-anchor="middle">${v}</text>`);
+  }
+  document.getElementById("circle").innerHTML = parts.join("");
+  describeGraph();
+}
+
+function describeGraph() {
+  const g = DATA.graphs[graphIndex];
+  const rows = [
+    ["catalogue", "(" + g.l + ", " + g.k + ")  ·  " + g.catalogue.length + " addresses"],
+    ["denominator", g.den + " = 2^" + g.l + "(2^" + g.k + "−1)"],
+    ["vertices", g.n_vertices + " (the forward closure under doubling)"],
+    ["separators", g.separators.map(s => s[0] + "/" + g.den + "–" + s[1] + "/" + g.den).join("  ·  ")],
+    ["prefix", "one period-" + g.prefix_period + " orbit, tagged as co-landing"],
+    ["undecided now", g.undecided + " pairs"],
+    ["nonproductive", g.nonproductive + " pairs — no iterate of doubling separates them"],
+    ["merging", g.merging + " terminal pairs, which share an image"],
+    ["sink cycles", g.boundary + " boundary, " + g.interior + " interior"],
+    ["pairs on a cycle", g.cycle_pairs.length],
+    ["obstruction free", g.obstruction_free ? "yes" : "no"],
+  ];
+  if (vertexPick !== null) {
+    const seq = orbit(vertexPick, g.den, 20);
+    rows.push(["picked", vertexPick + "/" + g.den]);
+    rows.push(["its orbit", seq.map(a => a + "/" + g.den).join(" → ") + " ↺"]);
+    const partners = g.nonproductive_pairs.filter(q => q[0] === vertexPick || q[1] === vertexPick)
+      .map(q => (q[0] === vertexPick ? q[1] : q[0]) + "/" + g.den);
+    rows.push(["never separated from", partners.length ? partners.join("  ·  ") : "nothing — every pair is decided"]);
+  }
+  document.getElementById("graphinfo").innerHTML = "<dl class='rec'>" +
+    rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("") + "</dl>";
+}
+
+document.getElementById("graphpick").innerHTML = DATA.graphs.map((g, i) =>
+  `<button data-g="${i}" aria-pressed="${i === graphIndex}">(${g.l}, ${g.k})</button>`).join("");
+document.getElementById("graphpick").addEventListener("click", e => {
+  const b = e.target.closest("button[data-g]"); if (!b) return;
+  graphIndex = +b.dataset.g; vertexPick = null;
+  document.querySelectorAll("#graphpick button").forEach(x =>
+    x.setAttribute("aria-pressed", String(+x.dataset.g === graphIndex)));
+  drawCircle();
+});
+const pickVertex = (el) => { vertexPick = +el.dataset.v; drawCircle(); };
+document.getElementById("circle").addEventListener("click", e => {
+  const c = e.target.closest("[data-v]"); if (c) pickVertex(c);
+});
+document.getElementById("circle").addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const c = e.target.closest("[data-v]"); if (c) { e.preventDefault(); pickVertex(c); }
+});
+drawCircle();
+
+/* ---- the four further tables ------------------------------------------------ */
+document.querySelector("#kneading tbody").innerHTML = DATA.kneading.map(r =>
+  `<tr><td class="n">${frac(r.theta[0], r.theta[1])}</td><td class="n">${r.period}</td>` +
+  `<td class="n">${r.nu}</td><td class="n">${r.address.join(" → ")}</td>` +
+  `<td class="n">${r.twist === null ? "—" : (r.twist ? "yes" : "no")}</td><td class="n">${r.block}</td></tr>`).join("");
+
+document.querySelector("#certificates tbody").innerHTML = DATA.certificates.map((c, i) =>
+  `<tr data-id="x${i}"><td>${c.name}</td><td class="n">(${c.l}, ${c.k})</td><td class="n">${c.horizon}</td>` +
+  `<td class="${c.excluded === c.forbidden ? "ok" : ""}">${c.excluded}/${c.forbidden}</td>` +
+  `<td class="n">${fmt(c.re_f[0], 6)} … ${fmt(c.re_f[1], 6)}</td>` +
+  `<td class="n">${fmt(c.im_f[0], 6)} … ${fmt(c.im_f[1], 6)}</td></tr>`).join("");
+
+document.querySelector("#graphs tbody").innerHTML = DATA.graphs.map(g =>
+  `<tr><td class="n">(${g.l}, ${g.k})</td><td class="n">${g.den}</td><td class="n">${g.n_vertices}</td>` +
+  `<td class="n">${g.undecided}</td><td class="n">${g.nonproductive}</td><td class="n">${g.merging}</td>` +
+  `<td class="n">${g.boundary}</td><td class="n">${g.interior}</td></tr>`).join("");
+
+document.querySelector("#density tbody").innerHTML = DATA.density.map(r =>
+  `<tr><td class="n">${r.separators.map(s => frac(s[0][0], s[0][1]) + "–" + frac(s[1][0], s[1][1])).join("  ")}</td>` +
+  `<td class="n">${r.atoms}</td><td class="n">${r.classes}</td><td class="n ok">${r.density}</td>` +
+  `<td class="n">${r.residue}</td></tr>`).join("");
+
+
+/* ---- the incidence package --------------------------------------------------- */
+let incIndex = DATA.incidence.findIndex(r => r.half_width_den_power === 8);
+if (incIndex < 0) incIndex = 0;
+
+function drawIncidence() {
+  const r = DATA.incidence[incIndex];
+  const ok = (b) => b ? "var(--periodic)" : "var(--preperiodic)";
+  const parts = [];
+  const box = (x, y, w, h, stroke, dash = "") =>
+    parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--raised)" stroke="${stroke}"` +
+      ` stroke-width="1.4" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`);
+  const label = (x, y, s, size = 10, fill = "var(--ink)", anchor = "start") =>
+    parts.push(`<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" text-anchor="${anchor}">${s}</text>`);
+  const line = (x1, y1, x2, y2) => parts.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
+
+  /* the three carrier vertices */
+  r.carrier.forEach((m, i) => {
+    const y = 20 + i * 62;
+    box(10, y, 250, 46, "var(--rule)");
+    label(22, y + 19, m.role, 10, "var(--faint)");
+    label(22, y + 35, m.id, 10.5);
+    line(260, y + 23, 330, 125);
+  });
+  label(10, 212, "three finite vertices — the carrier", 9.5, "var(--faint)");
+
+  /* the vertex they are the carrier of */
+  box(330, 84, 292, 82, ok(r.vertex_valid));
+  label(344, 104, "PointVertex", 10, "var(--faint)");
+  label(344, 121, r.vertex, 10);
+  label(344, 139, "carrier size " + r.carrier_size + " · incidence only " + (r.incidence_only ? "yes" : "no"), 10, "var(--muted)");
+  label(344, 156, r.vertex_valid ? "valid" : "not valid", 10, ok(r.vertex_valid));
+
+  /* the chain that has to pass first */
+  const steps = [
+    ["Krawczyk", r.krawczyk ? "contracts" : "no contraction", r.krawczyk],
+    ["exclusions", r.excluded + "/" + r.required + (r.ambiguous ? " ambiguous" : ""), r.excluded === r.required],
+    ["rays", "l=" + r.ray_preperiod + " k=" + r.ray_period + " (+" + r.preperiod_offset + ")", r.ray_period > 0],
+    ["finite replay", r.finite_replay ? "associated" : "not associated", r.finite_replay],
+    ["theorem import", r.theorem_import ? "accepted" : "not accepted", r.theorem_import],
+    ["certificate", r.certificate_emitted ? "emitted" : "not emitted", r.certificate_emitted],
+  ];
+  steps.forEach(([name, value, pass], i) => {
+    const x = 10 + i * 104, y = 240;
+    box(x, y, 94, 52, ok(pass), pass ? "" : "3 2");
+    label(x + 10, y + 19, name, 9.5, "var(--faint)");
+    label(x + 10, y + 36, value, 9.5, ok(pass));
+    if (i < steps.length - 1) line(x + 94, y + 26, x + 104, y + 26);
+  });
+  document.getElementById("incidence").innerHTML = parts.join("");
+
+  document.getElementById("incnote").textContent =
+    "box " + r.box_name + " · half-width 2^-" + r.half_width_den_power;
+  const rows = [
+    ["box", r.box_name],
+    ["half-width", r.half_width_den_power === 0 ? "1" : "2^−" + r.half_width_den_power],
+    ["critical-orbit type", "(" + r.ell + ", " + r.period + ")"],
+    ["ray orbit", "preperiod " + r.ray_preperiod + ", period " + r.ray_period +
+      "  ·  +" + r.preperiod_offset + " → l = " + r.ell],
+    ["citation", r.citation],
+    ["localization", r.krawczyk ? "Krawczyk image strictly inside" : "no contraction"],
+    ["exclusions", r.excluded + "/" + r.required + (r.ambiguous ? " — ambiguous" : " forbidden collisions")],
+    ["carrier", r.carrier.map(m => m.role).join("  ·  ")],
+    ["packaged", r.packaged ? "yes, a vertex of vertices" : "no"],
+    ["certificate", r.certificate_emitted ? "emitted" : "not emitted: the theorem tags are not accepted"],
+    ["proves C1", r.proves_c1 ? "yes" : "no, by construction"],
+  ];
+  document.getElementById("incinfo").innerHTML = "<dl class='rec'>" +
+    rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("") + "</dl>";
+}
+
+document.getElementById("incpick").innerHTML = DATA.incidence.map((r, i) =>
+  `<button data-i="${i}" aria-pressed="${i === incIndex}">${r.half_width_den_power === 0 ? "half-width 1" : "2^−" + r.half_width_den_power}</button>`).join("");
+document.getElementById("incpick").addEventListener("click", e => {
+  const b = e.target.closest("button[data-i]"); if (!b) return;
+  incIndex = +b.dataset.i;
+  document.querySelectorAll("#incpick button").forEach(x =>
+    x.setAttribute("aria-pressed", String(+x.dataset.i === incIndex)));
+  drawIncidence();
+});
+drawIncidence();
+
+document.querySelector("#incidence-rows tbody").innerHTML = DATA.incidence.map(r =>
+  `<tr><td class="n">${r.half_width_den_power === 0 ? "1" : "2^−" + r.half_width_den_power}</td>` +
+  `<td class="${r.krawczyk ? "ok" : ""}">${r.krawczyk ? "contracts" : "no"}</td>` +
+  `<td class="n ${r.excluded === r.required ? "ok" : ""}">${r.excluded}/${r.required}</td>` +
+  `<td class="n">${r.carrier_size}</td><td class="${r.packaged ? "ok" : ""}">${r.packaged ? "yes" : "no"}</td>` +
+  `<td>${r.certificate_emitted ? "emitted" : "not emitted"}</td></tr>`).join("");
+
+/* ---- open state -------------------------------------------------------------- */
+/* open on the cleanest instance: the ray at 1/2 lands at -2 */
+const tip = misPoints.findIndex(p => p.addresses.some(a => a.num === 1 && a.den === 2));
+inspect("m", tip >= 0 ? tip : 0, false);
+</script>
