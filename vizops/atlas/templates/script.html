@@ -201,7 +201,7 @@ document.querySelector("#addresses tbody").innerHTML = addrRows.map(r =>
 
 document.querySelector("#tunings tbody").innerHTML = DATA.tunings.map(t =>
   `<tr><td>${t.component}</td><td class="n">${frac(t.lo[0], t.lo[1])}, ${frac(t.hi[0], t.hi[1])}</td>` +
-  `<td class="n">${frac(t.theta[0], t.theta[1])}</td><td class="n">${frac(t.tuned[0], t.tuned[1])}</td>` +
+  `<td class="n">${frac(t.theta[0], t.theta[1])}</td><td class="n">${t.tuned === null ? "—" : frac(t.tuned[0], t.tuned[1])}</td>` +
   `<td class="n">${t.period ?? "—"}</td></tr>`).join("");
 
 document.querySelector("#components tbody").innerHTML = DATA.components.map((c, i) =>

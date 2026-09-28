@@ -192,7 +192,7 @@ def certificates(ie: ModuleType, addresses: list[dict]) -> list[dict]:
     return rows
 
 
-def assemble(data: dict[str, Any], ie: ModuleType, provenance: Provenance) -> tuple[str, dict[str, Any]]:
+def assemble(data: dict[str, Any], ie: ModuleType, provenances: tuple[Provenance, ...]) -> tuple[str, dict[str, Any]]:
     """The page, and the dataset it embeds: the exact sections untouched, the
     traced ones beside them."""
     misiurewicz = traced_addresses(data["catalogues"])
@@ -200,7 +200,7 @@ def assemble(data: dict[str, Any], ie: ModuleType, provenance: Provenance) -> tu
             "tunings": placed_tunings(data["tunings"]), "certificates": certificates(ie, misiurewicz)}
     head, body, script = ((TEMPLATES / f"{part}.html").read_text(encoding="utf-8")
                           for part in ("head", "body", "script"))
-    stamp = f"{provenance.stamp} · {CAVEAT}"
+    stamp = f"{' · '.join(p.stamp for p in provenances)} · {CAVEAT}"
     page = head + body.replace("__STAMP__", stamp) + \
         script.replace("__DATA__", json.dumps(full, separators=(",", ":")))
     return page, full
@@ -239,8 +239,22 @@ def build(page: Page, sources: Path, *, dataset: Path | None = None, out: Path =
         data = exact(raw)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
-    provenance = Provenance(page.repo, page.path, hashlib.sha256(raw).hexdigest(), page.note)
-    html, full = assemble(data, ie, provenance)
+    emitter = checkout / page.path
+    oracle_source = checkout / ORACLE
+    if not emitter.is_file():
+        return Refused(page.id, f"no emitter at {emitter}")
+    provenances = (
+        Provenance(page.repo, page.path, hashlib.sha256(emitter.read_bytes()).hexdigest(), page.note),
+        Provenance(page.repo, ORACLE, hashlib.sha256(oracle_source.read_bytes()).hexdigest()),
+        Provenance("dataset", dataset.name if dataset is not None else page.task,
+                   hashlib.sha256(raw).hexdigest()),
+    )
+    try:
+        html, full = assemble(data, ie, provenances)
+    except SourceError as refusal:
+        return Refused(page.id, str(refusal))
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError, ZeroDivisionError) as err:
+        return Refused(page.id, f"the dataset's nested records no longer match the atlas schema: {err!r}")
     disagreeing = [f"{r['num']}/{r['den']}" for r in full["misiurewicz"] if not r["agrees"]]
     if disagreeing:
         return Refused(page.id, f"{len(disagreeing)} traced position(s) disagree with their exact type: "

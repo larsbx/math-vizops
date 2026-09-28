@@ -69,6 +69,9 @@ def estate(tmp_path):
     oracle = tmp_path / "estate" / PAGE.checkout / ORACLE
     oracle.parent.mkdir(parents=True)
     oracle.write_text(STUB_ORACLE, encoding="utf-8")
+    emitter = tmp_path / "estate" / PAGE.checkout / PAGE.path
+    emitter.parent.mkdir(parents=True, exist_ok=True)
+    emitter.write_text("// test emitter\n", encoding="utf-8")
     return tmp_path / "estate"
 
 
@@ -124,13 +127,16 @@ def test_a_malformed_dataset_is_refused(raw, reason):
 # --- the three outcomes -----------------------------------------------------------
 
 
-def test_a_dataset_renders_a_page_stamped_with_its_digest(estate, tmp_path):
+def test_a_dataset_renders_a_page_stamped_with_every_input_digest(estate, tmp_path):
     source = write(tmp_path, dataset())
     outcome = build(PAGE, estate, dataset=source, out=tmp_path / "out" / "atlas.html")
     assert isinstance(outcome, Rendered)
     html = (tmp_path / "out" / "atlas.html").read_text(encoding="utf-8")
     assert "__DATA__" not in html and "__STAMP__" not in html
-    assert CAVEAT in html and f"{PAGE.repo}/{PAGE.path} @ sha256:" in html
+    assert CAVEAT in html
+    assert f"{PAGE.repo}/{PAGE.path} @ sha256:" in html
+    assert f"{PAGE.repo}/{ORACLE} @ sha256:" in html
+    assert f"dataset/{source.name} @ sha256:" in html
     embedded = json.loads(html.split("const DATA = ", 1)[1].split(";\n", 1)[0])
     assert {"misiurewicz", "components", "certificates"} <= set(embedded)
     assert embedded["misiurewicz"][0]["agrees"] is True
@@ -148,6 +154,19 @@ def test_a_checkout_without_the_oracle_is_refused(tmp_path):
 
 def test_a_missing_dataset_file_is_refused(estate, tmp_path):
     assert isinstance(build(PAGE, estate, dataset=tmp_path / "absent.json"), Refused)
+
+
+def test_a_malformed_nested_record_is_refused_without_writing(estate, tmp_path):
+    out = tmp_path / "atlas.html"
+    malformed = dataset(catalogues=[{"k": 1, "den": 2, "addresses": [1]}])
+    outcome = build(PAGE, estate, dataset=write(tmp_path, malformed), out=out)
+    assert isinstance(outcome, Refused) and "nested records" in outcome.reason
+    assert not out.exists()
+
+
+def test_nullable_tuning_is_rendered_as_unavailable():
+    script = (TEMPLATES / "script.html").read_text(encoding="utf-8")
+    assert 't.tuned === null ? "—"' in script
 
 
 def test_a_position_that_disagrees_with_its_type_is_refused_and_nothing_is_written(estate, tmp_path, monkeypatch):
