@@ -20,7 +20,7 @@ from vizops.figure import CAVEAT
 from vizops.outcome import Inconclusive, Refused, Rendered
 from vizops.sources import SourceError, pages
 
-PAGE = pages()[0]
+PAGE = next(p for p in pages() if p.id == "mandelbrot-atlas")
 STUB_ORACLE = '''
 from dataclasses import dataclass
 from fractions import Fraction
@@ -177,8 +177,8 @@ def test_an_emitter_that_fails_is_refused(estate, tmp_path, monkeypatch):
 
 
 def test_the_cli_scores_the_atlas_like_a_render(estate, tmp_path, capsys):
-    assert main(["atlas", "--sources", str(estate), "--dataset", str(write(tmp_path, dataset())),
+    assert main(["page", PAGE.id, "--sources", str(estate), "--dataset", str(write(tmp_path, dataset())),
                  "--out", str(tmp_path / "out")]) == 0
     assert (tmp_path / "out" / f"{PAGE.id}.html").is_file()
-    assert main(["atlas", "--sources", str(tmp_path / "nothing")]) == 1
+    assert main(["page", PAGE.id, "--sources", str(tmp_path / "nothing")]) == 1
     assert "refused" in capsys.readouterr().out

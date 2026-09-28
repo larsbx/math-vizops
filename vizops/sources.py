@@ -13,9 +13,12 @@ evidence.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
+import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from types import ModuleType
 from typing import Mapping
 
 MANIFEST = Path(__file__).resolve().parent / "sources.toml"
@@ -94,13 +97,15 @@ def load(manifest: Path = MANIFEST) -> tuple[Scene, ...]:
 
 @dataclass(frozen=True, slots=True)
 class Page:
-    """A self-contained HTML surface whose source is an emitter, not a file."""
+    """A self-contained HTML surface, built by the named builder from code or
+    output that its own repository owns -- never from a copy of either."""
 
     id: str
     title: str
     repo: str
     path: str
-    task: str
+    builder: str
+    task: str = ""
     note: str = ""
 
     @property
@@ -111,15 +116,33 @@ class Page:
 def pages(manifest: Path = MANIFEST) -> tuple[Page, ...]:
     data = tomllib.loads(manifest.read_text(encoding="utf-8"))
     fields = {f for f in Page.__dataclass_fields__}
+    optional = {"task", "note"}
     problems = [
-        f"page {entry.get('id', i)}: fields must be {', '.join(sorted(fields))}"
+        f"page {entry.get('id', i)}: needs {', '.join(sorted(fields - optional))}, "
+        f"may have {', '.join(sorted(optional))}, and nothing else"
         for i, entry in enumerate(data.get("page", []))
         if not isinstance(entry, dict) or not set(entry) <= fields
-        or any(not entry.get(f) for f in fields - {"note"})
+        or any(not entry.get(f) for f in fields - optional)
     ]
     if problems:
         raise SourceError("\n  ".join((f"{manifest} refused:", *problems)))
     return tuple(Page(**entry) for entry in data.get("page", []))
+
+
+def module(checkout: Path, path: str) -> ModuleType:
+    """A Python file from a sibling checkout, loaded where it lives.
+
+    Borrowing upstream's own code is how a page answers an exact question
+    without a second implementation here to disagree with it.
+    """
+    source = Path(checkout) / path
+    if not source.is_file():
+        raise SourceError(f"no {path} in {checkout}")
+    spec = importlib.util.spec_from_file_location(f"vizops_upstream.{Path(checkout).name}.{source.stem}", source)
+    loaded = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = loaded  # dataclasses resolve their annotations through here
+    spec.loader.exec_module(loaded)
+    return loaded
 
 
 def by_id(scenes: tuple[Scene, ...] = ()) -> Mapping[str, Scene]:

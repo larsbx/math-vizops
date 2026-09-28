@@ -31,7 +31,7 @@ IMAGES = "images"
 MODULES = (
     "sources.py", "adapters.py", "figure.py", "layout.py",
     "palette.py", "outcome.py", "bridge.py", "scenes.py", "surfaces.py", "wiki.py",
-    "atlas/build.py", "atlas/trace.py",
+    "atlas/build.py", "atlas/trace.py", "wake/build.py",
 )
 
 

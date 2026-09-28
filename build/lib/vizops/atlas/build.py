@@ -1,6 +1,6 @@
 """The atlas page: exact sections from finite-mandelbrot-research, positions traced here.
 
-    python -m vizops atlas [--dataset dataset.json] [--out atlas.html]
+    python -m vizops page mandelbrot-atlas [--dataset dataset.json]
 
 The split is that repository's policy, and vizops keeps it.
 
@@ -30,11 +30,9 @@ reaches no verdict.
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import shutil
 import subprocess
-import sys
 from fractions import Fraction
 from pathlib import Path
 from types import ModuleType
@@ -42,7 +40,7 @@ from typing import Any
 
 from ..figure import CAVEAT, Provenance
 from ..outcome import Inconclusive, Outcome, Refused, Rendered
-from ..sources import Page, SourceError
+from ..sources import Page, SourceError, module
 from . import trace as tp
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
@@ -86,14 +84,10 @@ def _floats(node: Any, where: str):
 
 def oracle(checkout: Path) -> ModuleType:
     """The upstream exclusion oracle, loaded from the checkout it lives in."""
-    path = checkout / ORACLE
-    if not path.is_file():
-        raise SourceError(f"no exclusion oracle at {path}")
-    spec = importlib.util.spec_from_file_location("interval_exclusion_reference", path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module  # its dataclasses resolve their annotations through here
-    spec.loader.exec_module(module)
-    return module
+    try:
+        return module(checkout, ORACLE)
+    except SourceError:
+        raise SourceError(f"no exclusion oracle at {checkout / ORACLE}") from None
 
 
 def traced_addresses(catalogues: list[dict]) -> list[dict]:

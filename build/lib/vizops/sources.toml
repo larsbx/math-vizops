@@ -33,14 +33,24 @@ adapter = "object_catalogue"
 scene = "ObjectCatalogue"
 note = "The single machine-readable source of docs/mathematical-object-catalogue.md."
 
-# A page is a self-contained HTML surface rather than a manim scene. Its source
-# is an emitter the owning repository runs, not a file it commits, so `path`
-# names the emitter and `task` the pixi task that prints its output.
+# A page is a self-contained HTML surface rather than a manim scene, built by
+# `builder` (a package under vizops/). Its source is code the owning repository
+# runs -- an emitter, a module -- not a file it commits, so `path` names that
+# code, and `task` the pixi task that runs it where there is one.
 
 [[page]]
 id = "mandelbrot-atlas"
 title = "Ray address atlas"
 repo = "larsbx/finite-mandelbrot-research"
 path = "kernel/mojo/entrypoints/atlas_dataset.mojo"
+builder = "atlas"
 task = "atlas-dataset"
 note = "The exact sections are that emitter's, checked against the Python oracles by tests/test_atlas_dataset.py; the positions are traced by vizops/atlas/trace.py and are a placement, not a claim."
+
+[[page]]
+id = "wake-to-mandelbrot"
+title = "Wake cycle to Mandelbrot bulb root"
+repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
+path = "kernel/bulbford/wake.py"
+builder = "wake"
+note = "Rotation words, doubling cycles and characteristic pairs are that module's; the raster, the root coordinate and the dashed rays are display aids. The landing relation is the imported [DH/Mil00]."

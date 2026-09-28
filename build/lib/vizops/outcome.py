@@ -33,7 +33,7 @@ MEANING = {
         "refuses -- or the renderer died. Nothing was drawn, on purpose."
     ),
     "inconclusive": (
-        "No verdict was reached: no `manimgl` on PATH (or, for the atlas, no `pixi`), no GL "
+        "No verdict was reached: no `manimgl` on PATH (or, for a page, no `pixi`), no GL "
         "context, a timeout, or a clean exit that wrote no file."
     ),
 }

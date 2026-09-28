@@ -73,6 +73,7 @@ class is refused rather than given a generated hue.
 | `vizops/wiki.py` | Publishing `wiki/` to the repository's GitHub wiki. |
 | `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
 | `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
+| `vizops/wake/build.py` | The wake page: exact angle data from `kernel/bulbford/wake.py`, drawn here. |
 
 <!-- END generated module table -->
 

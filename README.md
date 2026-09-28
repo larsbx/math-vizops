@@ -37,24 +37,37 @@ running in CI. Rendering is the last step and the least interesting one.
 Sibling checkouts are looked for beside this repository — `../<repo-name>` —
 or wherever `--sources` / `$VIZOPS_SOURCES` points.
 
-## The atlas page
+## Pages
 
-One surface is not a manim scene: the ray address atlas for
-`finite-mandelbrot-research`, a single self-contained HTML page with the
-parameter plane, the circle of addresses and the incidence package.
+Two surfaces are not manim scenes but self-contained HTML pages, each declared
+as a `[[page]]` in `sources.toml` and built into `out/<id>.html`, never
+committed:
 
 ```sh
-python -m vizops atlas                                  # runs the emitter with pixi in the sibling checkout
-python -m vizops atlas --dataset dataset.json           # or reads its output: `pixi run atlas-dataset > dataset.json`
+python -m vizops page                                     # every page
+python -m vizops page mandelbrot-atlas --dataset d.json   # the atlas from saved emitter output
+python -m vizops page wake-to-mandelbrot
 ```
 
-Its exact sections are that repository's `pixi run atlas-dataset` output,
-refused if a section is missing or a float has leaked in. Its positions are
-traced here by `vizops/atlas/trace.py` — floating point, the analytic
-machinery that repository's kernel refuses, and a placement rather than a
-claim. The exclusion-box verdicts are upstream's oracle, loaded from the
-checkout and never copied. The page carries the same stamp and caveat as a
-frame; the page is written to `out/mandelbrot-atlas.html` and not committed.
+* **`mandelbrot-atlas`** — the ray address atlas for
+  `finite-mandelbrot-research`: the parameter plane, the circle of addresses
+  and the incidence package. Its exact sections are that repository's
+  `pixi run atlas-dataset` output (run in the sibling checkout, or read with
+  `--dataset`), refused if a section is missing or a float has leaked in. Its
+  positions are traced here by `vizops/atlas/trace.py` — floating point, the
+  analytic machinery that repository's kernel refuses, and a placement rather
+  than a claim. The exclusion-box verdicts are upstream's oracle, loaded from
+  the checkout and never copied.
+* **`wake-to-mandelbrot`** — for any reduced `p/q` with `q ≤ 12`, the rotation
+  word, the doubling cycle and the characteristic pair `θ₋, θ₊` that select
+  the `p/q` bulb root. Every exact number is
+  `mandelbrot-bulbs-and-ford-circles-research`'s `kernel/bulbford/wake.py`,
+  loaded from the checkout and embedded; the raster, the root coordinate and
+  the dashed rays are display aids. Its 3/7 still,
+  `wiki/images/wake-cycle-3-7.svg`, is drawn by hand and held to the module
+  by `tests/test_estate.py`.
+
+A page carries the same stamp and caveat as a frame.
 
 ## Draw the artifact, never the mathematics
 
@@ -105,7 +118,7 @@ are not the same direction:
 | --- | ---: | --- |
 | `rendered` | 0 | A file exists, and the outcome carries its digest. |
 | `refused` | 1 | The source is missing, empty, of an unknown format, or describes a figure the type refuses -- or the renderer died. Nothing was drawn, on purpose. |
-| `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH (or, for the atlas, no `pixi`), no GL context, a timeout, or a clean exit that wrote no file. |
+| `inconclusive` | 2 | No verdict was reached: no `manimgl` on PATH (or, for a page, no `pixi`), no GL context, a timeout, or a clean exit that wrote no file. |
 
 <!-- END generated outcome table -->
 
@@ -147,11 +160,12 @@ to fold the tail at the source or to facet the figure.
 | `vizops/wiki.py` | Publishing `wiki/` to the repository's GitHub wiki. |
 | `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
 | `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
+| `vizops/wake/build.py` | The wake page: exact angle data from `kernel/bulbford/wake.py`, drawn here. |
 
 <!-- END generated module table -->
 
 `vizops/sources.toml` is the only place a source is named — scenes as
-`[[scene]]`, the atlas as `[[page]]`; the tables above,
+`[[scene]]`, pages as `[[page]]`; the tables above,
 in this file and in the wiki, are rendered from it and from the modules' own
 docstrings by `vizops/surfaces.py`.
 
