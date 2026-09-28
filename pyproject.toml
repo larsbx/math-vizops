@@ -22,12 +22,13 @@ render = ["manimgl>=1.7.2"]
 vizops = "vizops.__main__:main"
 
 [tool.setuptools]
-packages = ["vizops", "vizops.atlas", "vizops.wake"]
+packages = ["vizops", "vizops.atlas", "vizops.wake", "vizops.bulbs"]
 
 [tool.setuptools.package-data]
 vizops = ["*.toml"]
 "vizops.atlas" = ["templates/*.html"]
 "vizops.wake" = ["templates/*.html"]
+"vizops.bulbs" = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

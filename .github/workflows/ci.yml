@@ -50,6 +50,11 @@ jobs:
           repository: larsbx/mandelbrot-bulbs-and-ford-circles-research
           path: mandelbrot-bulbs-and-ford-circles-research
           token: ${{ secrets.ESTATE_TOKEN || github.token }}
+      - uses: actions/checkout@v4
+        with:
+          repository: larsbx/finite-math-kernels
+          path: finite-math-kernels
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -60,4 +65,4 @@ jobs:
         run: |
           python -m vizops
           pytest tests/test_estate.py -q
-          python -m vizops page wake-to-mandelbrot
+          python -m vizops page wake-to-mandelbrot bulbs-and-ford-circles

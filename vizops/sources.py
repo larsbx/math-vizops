@@ -107,26 +107,33 @@ class Page:
     builder: str
     task: str = ""
     note: str = ""
+    #: Further files the page reads, as "owner/repo:path".
+    also: tuple[str, ...] = ()
 
     @property
     def checkout(self) -> str:
         return self.repo.split("/")[-1]
 
+    def files(self) -> tuple[tuple[str, str], ...]:
+        """Every (repo, path) the page reads, its own first."""
+        return ((self.repo, self.path), *(tuple(entry.split(":", 1)) for entry in self.also))
+
 
 def pages(manifest: Path = MANIFEST) -> tuple[Page, ...]:
     data = tomllib.loads(manifest.read_text(encoding="utf-8"))
     fields = {f for f in Page.__dataclass_fields__}
-    optional = {"task", "note"}
+    optional = {"task", "note", "also"}
     problems = [
         f"page {entry.get('id', i)}: needs {', '.join(sorted(fields - optional))}, "
         f"may have {', '.join(sorted(optional))}, and nothing else"
         for i, entry in enumerate(data.get("page", []))
         if not isinstance(entry, dict) or not set(entry) <= fields
         or any(not entry.get(f) for f in fields - optional)
+        or any(":" not in e or "/" not in e.split(":", 1)[0] for e in entry.get("also", []))
     ]
     if problems:
         raise SourceError("\n  ".join((f"{manifest} refused:", *problems)))
-    return tuple(Page(**entry) for entry in data.get("page", []))
+    return tuple(Page(**{**entry, "also": tuple(entry.get("also", ()))}) for entry in data.get("page", []))
 
 
 def module(checkout: Path, path: str) -> ModuleType:

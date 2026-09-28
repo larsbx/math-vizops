@@ -67,20 +67,23 @@ python -m vizops wiki --publish
 
 ## Pages
 
-Two surfaces are HTML pages rather than manim scenes. Each lands at
+Three surfaces are HTML pages rather than manim scenes. Each lands at
 `out/<id>.html`; open it in a browser.
 
 ```sh
 python -m vizops page mandelbrot-atlas                  # pixi run atlas-dataset in the sibling checkout
 python -m vizops page mandelbrot-atlas --dataset d.json # or its saved output
 python -m vizops page wake-to-mandelbrot                # reads kernel/bulbford/wake.py from its checkout
+python -m vizops page bulbs-and-ford-circles            # transcribes four committed certificate and data files
 ```
 
 For the atlas, no `pixi` and no `--dataset` is `inconclusive`; a missing
 checkout, a malformed dataset or a traced position that disagrees with its
 exact type is `refused` and writes nothing. For the wake page, a missing
 checkout or a `wake.py` that no longer answers as the page reads it is
-`refused` — see [[Outcomes]].
+`refused`; for Bulbs & Ford Circles, so is a missing file, another schema, or
+centre and antipode certificates that disagree about which bulbs exist — see
+[[Outcomes]].
 
 The wake page's 3/7 still:
 

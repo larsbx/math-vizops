@@ -74,6 +74,7 @@ class is refused rather than given a generated hue.
 | `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
 | `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
 | `vizops/wake/build.py` | The wake page: exact angle data from `kernel/bulbford/wake.py`, drawn here. |
+| `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 
 <!-- END generated module table -->
 

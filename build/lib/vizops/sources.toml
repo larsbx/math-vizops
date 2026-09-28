@@ -54,3 +54,16 @@ repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
 path = "kernel/bulbford/wake.py"
 builder = "wake"
 note = "Rotation words, doubling cycles and characteristic pairs are that module's; the raster, the root coordinate and the dashed rays are display aids. The landing relation is the imported [DH/Mil00]."
+
+[[page]]
+id = "bulbs-and-ford-circles"
+title = "Bulbs & Ford Circles"
+repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
+path = "experiments/data/center_certificates.json"
+builder = "bulbs"
+also = [
+  "larsbx/mandelbrot-bulbs-and-ford-circles-research:experiments/data/antipode_certificates.json",
+  "larsbx/mandelbrot-bulbs-and-ford-circles-research:experiments/data/kappa_q1009.json",
+  "larsbx/finite-math-kernels:conformance/cyclotomic_germ_v1.json",
+]
+note = "Certified centre and antipode boxes, G brackets and the q = 1009 sweep are that repository's; the exact indices are finite-math-kernels' cyclotomic germ vectors. The page transcribes them; every certificate it shows was issued upstream."

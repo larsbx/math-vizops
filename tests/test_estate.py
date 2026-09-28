@@ -14,7 +14,7 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops import wake
+from vizops import bulbs, wake
 from vizops.atlas.build import oracle
 from vizops.sources import load, module, pages
 
@@ -69,3 +69,14 @@ def test_the_committed_still_prints_what_the_module_says():
     (row,) = [r for r in wake.rows(module(checkout_of(page), page.path)) if (r["p"], r["q"]) == (3, 7)]
     claims = wake.still_claims(wake.STILL.read_text(encoding="utf-8"))
     assert claims == {k: row[k] for k in ("cycle", "lo", "hi", "den")}
+
+
+def test_the_real_certificates_sweep_and_germ_transcribe():
+    """Where an upstream file changes shape, this is what fails."""
+    page = PAGES["bulbs"]
+    missing = [repo for repo, _ in page.files() if not (root() / repo.split("/")[-1]).is_dir()]
+    if missing:
+        message = f"no checkout of {', '.join(sorted(set(missing)))} under {root()}"
+        pytest.fail(message) if REQUIRED else pytest.skip(message)
+    data = bulbs.transcribe(*(bulbs.read(root(), repo, path)[0] for repo, path in page.files()))
+    assert len(data["bulbs"]) == 79 and len(data["dense"]) == 504 and len(data["iota"]) == 22

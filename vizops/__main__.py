@@ -33,7 +33,7 @@ from .sources import MANIFEST, Page, Scene, load, pages
 
 STILLS = surfaces.WIKI / surfaces.IMAGES
 #: The packages a `[[page]]` may name as its builder, each exporting `build`.
-BUILDERS = ("atlas", "wake")
+BUILDERS = ("atlas", "wake", "bulbs")
 
 
 def report(scenes: Sequence[Scene], sources: Path | None) -> int:
