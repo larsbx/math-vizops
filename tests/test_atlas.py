@@ -165,6 +165,7 @@ def test_a_malformed_nested_record_is_refused_without_writing(estate, tmp_path):
 
 
 def test_nullable_tuning_is_rendered_as_unavailable():
+    # Keep the browser-side table builder from indexing the accepted null value.
     script = (TEMPLATES / "script.html").read_text(encoding="utf-8")
     assert 't.tuned === null ? "—"' in script
 
