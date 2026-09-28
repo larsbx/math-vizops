@@ -20,6 +20,8 @@ republish it when its sources move.
 
 `python -m vizops page mandelbrot-atlas` — reads [`kernel/mojo/entrypoints/atlas_dataset.mojo`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/kernel/mojo/entrypoints/atlas_dataset.mojo) in `larsbx/finite-mandelbrot-research`.
 
+**View it:** [Ray address atlas](https://claude.ai/artifact/9LDj75kM1AFBjZLmDxuFgA) — a published build, private to its owner until shared.
+
 ![Ray address atlas](images/mandelbrot-atlas.png)
 
 > The exact sections are that emitter's, checked against the Python oracles by tests/test_atlas_dataset.py; the positions are traced by vizops/atlas/trace.py and are a placement, not a claim.

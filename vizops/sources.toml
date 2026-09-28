@@ -44,6 +44,7 @@ title = "Ray address atlas"
 repo = "larsbx/finite-mandelbrot-research"
 path = "kernel/mojo/entrypoints/atlas_dataset.mojo"
 builder = "atlas"
+artifact = "https://claude.ai/artifact/9LDj75kM1AFBjZLmDxuFgA"
 task = "atlas-dataset"
 note = "The exact sections are that emitter's, checked against the Python oracles by tests/test_atlas_dataset.py; the positions are traced by vizops/atlas/trace.py and are a placement, not a claim."
 
