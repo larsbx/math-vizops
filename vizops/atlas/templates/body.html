@@ -1,0 +1,224 @@
+<div class="wrap">
+<header>
+  <p class="eyebrow">finite-regime Mandelbrot research</p>
+  <h1>Ray Address Atlas</h1>
+  <p class="lede">Every number here is exact: ray addresses <span class="num">p/q</span> and their types
+  <span class="num">(l, k)</span> under doubling, the catalogue counts the Möbius identity predicts,
+  kneading sequences and internal addresses, the separator prefixes and the pairs they leave undecided,
+  and dyadic boxes with the collisions they exclude. Three views show them: the parameter plane, the
+  circle the addresses actually live on, and the finite incidence package that stands in for a point.</p>
+  <div class="caveat"><b>What is exact and what is not.</b> Every exact number here is printed by
+  <span class="num">pixi run atlas-dataset</span>, the canonical implementation, and checked
+  object by object against independent Python oracles. The <i>positions</i> are not: each one is a
+  conventional numeric computation, a traced parameter ray finished by Newton on the equation the point
+  satisfies, and they are computed by vizops, not by the research repository. Associating an address
+  with a parameter is the imported landing theorem. finite-mandelbrot-research
+  computes no parameter locations and claims none — no module under <span class="num">kernel/</span> may
+  produce a floating-point number at all, which is why the positions are computed outside it. What that
+  repository does locate is a <i>box</i>: an exclusion certificate is an exact dyadic rectangle, and what
+  it proves is stated in its own row.</div>
+</header>
+
+<div class="stage">
+  <div>
+    <div class="controls" role="group" aria-label="View">
+      <button id="v-all" aria-pressed="true">Whole set</button>
+      <button id="v-rabbit">Rabbit</button>
+      <button id="v-tip">Antenna tip</button>
+      <button id="v-p4">Period-4 region</button>
+      <button id="t-comp" aria-pressed="true">Components</button>
+      <button id="t-mis" aria-pressed="true">Misiurewicz</button>
+      <button id="t-cert" aria-pressed="true">Certificates</button>
+    </div>
+    <div class="plotwrap">
+      <canvas id="plot"></canvas>
+      <svg class="marks" id="marks" aria-label="Catalogued addresses on the Mandelbrot set"></svg>
+    </div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--periodic)"></i>periodic angle &rarr; hyperbolic component root</span>
+      <span><i class="swatch" style="background:var(--preperiodic)"></i>preperiodic angle &rarr; Misiurewicz point</span>
+      <span><i class="swatch" style="background:var(--certificate)"></i>exclusion certificate, an exact dyadic box</span>
+      <span id="viewnote" class="num"></span>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <p class="eyebrow">Inspector</p>
+    <div id="inspector"></div>
+  </aside>
+</div>
+
+
+<section>
+  <h2>The circle of addresses</h2>
+  <p class="note">The other plane. Every address is a point of <span class="num">Z/den</span> on the circle
+  of external angles, and doubling is the dynamics on it. A <b>separator</b> is a pair of rays declared to
+  land together; it cuts the circle, and two addresses are separated when some separator puts them on
+  opposite open sides. The extractor asks which pairs no iterate of doubling ever separates — those are
+  the obstruction, and the cyclic ones are drawn heavy.</p>
+
+  <div class="stage">
+    <div>
+      <div class="controls" id="graphpick" role="group" aria-label="Catalogue"></div>
+      <div class="circlewrap"><svg class="circle" id="circle" viewBox="0 0 320 320"
+        aria-label="Catalogue addresses on the circle of external angles"></svg></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--preperiodic)"></i>catalogue address</span>
+        <span><i class="swatch" style="background:var(--surface);border:1px solid var(--muted)"></i>reached by doubling</span>
+        <span><i class="swatch" style="background:var(--certificate)"></i>separator</span>
+        <span>thin arc: nonproductive pair &nbsp; heavy arc: sink cycle</span>
+      </div>
+    </div>
+    <aside class="panel">
+      <p class="eyebrow">Extraction</p>
+      <div id="graphinfo"></div>
+    </aside>
+  </div>
+</section>
+
+
+<section>
+  <h2>A point that is not a point</h2>
+  <p class="note">The third object, and the one the repository is really about. Nothing here may be an
+  analytic singleton, so what a certificate emits is a <b>PointVertex</b>: a finite vertex whose carrier
+  is exactly three other finite vertices — the root handle of the polynomial over a box, the set of ray
+  addresses, and the dyadic box itself. Below it is the chain that has to pass before anything is
+  emitted, and the two steps at the end that do not pass.</p>
+
+  <div class="stage">
+    <div>
+      <div class="controls" id="incpick" role="group" aria-label="Box half-width"></div>
+      <div class="circlewrap"><svg class="incidence" id="incidence" viewBox="0 0 640 330"
+        aria-label="The finite incidence package a certificate would emit"></svg></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--periodic)"></i>replayed and accepted</span>
+        <span><i class="swatch" style="background:var(--preperiodic)"></i>refused, and the refusal is the result</span>
+        <span class="num" id="incnote"></span>
+      </div>
+    </div>
+    <aside class="panel">
+      <p class="eyebrow">Package</p>
+      <div id="incinfo"></div>
+    </aside>
+  </div>
+</section>
+
+<section>
+  <h2>The numbers</h2>
+  <p class="note">Nine tables, every entry an integer or a rational, all of them printed by
+  <span class="num">pixi run atlas-dataset</span>. Rows that name a plotted object select it.</p>
+<div class="grid2">
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Catalogue counts</h2>
+      <p class="formula">count(l,k) = 2^(l-1) &middot; &Sigma;<sub>d|k</sub> &mu;(k/d)(2^d &minus; 1)</p>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">Every row: the identity against the
+      enumeration over the common denominator <span class="num">2^l(2^k&minus;1)</span>.</p>
+    </div>
+    <div class="scroll"><table id="counts"><thead><tr>
+      <th>l</th><th>k</th><th>denominator</th><th>identity</th><th>enumerated</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Addresses on the plot</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">Select a row to inspect it. Several rays can
+      land at one point, so addresses outnumber positions.</p>
+    </div>
+    <div class="scroll"><table id="addresses"><thead><tr>
+      <th>address</th><th>type</th><th>kind</th><th>Re c</th><th>Im c</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Tuning</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">Douady's tuning substitutes the two root-ray
+      blocks of a component into the digits of an angle. These are the repository's own instances.</p>
+    </div>
+    <div class="scroll"><table id="tunings"><thead><tr>
+      <th>component</th><th>root rays</th><th>&theta;</th><th>tuned</th><th>period</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Components</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">Each hyperbolic component carries the two
+      angles whose rays land at its root, found by tracing both and meeting at one centre.</p>
+    </div>
+    <div class="scroll"><table id="components"><thead><tr>
+      <th>period</th><th>root rays</th><th>centre</th><th>name</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Kneading and internal address</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">For a periodic angle: the kneading sequence
+      <span class="num">&nu;</span> up to its star, the internal address it determines, and the twist of
+      the tuning pattern. The binary block is the angle's own digits.</p>
+    </div>
+    <div class="scroll"><table id="kneading"><thead><tr>
+      <th>&theta;</th><th>period</th><th>&nu;</th><th>internal address</th><th>twist</th><th>digits</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Exclusion certificates</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">An exact dyadic box and the forbidden
+      collisions <span class="num">Q_j &minus; Q_i</span> it excludes over a horizon. Exclusion is not
+      existence: a root in the box is a separate witness, and none is claimed here.</p>
+    </div>
+    <div class="scroll"><table id="certificates"><thead><tr>
+      <th>object</th><th>type</th><th>horizon</th><th>excluded</th><th>Re box</th><th>Im box</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Obstruction extraction</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">Each catalogue under a declared separator
+      prefix of periodic rays. The landing tag is the caller's hypothesis, never computed here, and no row
+      is a sweep over all types.</p>
+    </div>
+    <div class="scroll"><table id="graphs"><thead><tr>
+      <th>type</th><th>den</th><th>vertices</th><th>undecided</th><th>nonproductive</th><th>merging</th>
+      <th>boundary</th><th>interior</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Incidence packages</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">One row per box half-width. A valid package
+      is not an accepted certificate, and the last column says so at every width.</p>
+    </div>
+    <div class="scroll"><table id="incidence-rows"><thead><tr>
+      <th>half-width</th><th>Krawczyk</th><th>excluded</th><th>carrier</th><th>packaged</th><th>certificate</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="tablebox">
+    <div class="tablehead">
+      <h2>Decided measure</h2>
+      <p style="margin:0;font-size:.8rem;color:var(--muted)">A separator prefix decides a fraction of
+      angle pairs: <span class="num">1 &minus; &Sigma;|C|&sup2;</span> over the undecided classes. The
+      undecided column is what is left: the two are exact rationals summing to one.</p>
+    </div>
+    <div class="scroll"><table id="density"><thead><tr>
+      <th>separators</th><th>atoms</th><th>classes</th><th>density</th><th>undecided</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+</section>
+
+<footer>Every exact number on this page is printed by <span class="num">pixi run atlas-dataset</span>,
+the canonical implementation, and checked object by object against independent Python oracles. The
+positions are the one thing Mojo may not compute: they are traced at double precision and polished onto
+the defining equation, accurate to plotting precision and no further.
+<p class="stamp">__STAMP__</p></footer>
+</div>

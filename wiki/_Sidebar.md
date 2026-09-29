@@ -3,6 +3,7 @@
 * **[[Home]]**
 * [[Reading a frame]]
 * [[Scenes]]
+* [[Pages]]
 * [[Rendering and viewing]]
 * [[Outcomes]]
 * [[Why it refuses]]

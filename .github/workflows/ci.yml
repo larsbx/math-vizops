@@ -30,7 +30,10 @@ jobs:
     # step fails with "Repository not found".
     runs-on: ubuntu-latest
     env:
-      VIZOPS_REQUIRE_SOURCES: "1"
+      # Cross-repository private checkouts require the explicitly scoped PAT.
+      # github.token is deliberately not used as a fallback: it cannot read a
+      # private sibling and turns an otherwise useful estate run into a 404.
+      VIZOPS_REQUIRE_SOURCES: ${{ secrets.ESTATE_TOKEN != '' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +48,18 @@ jobs:
           repository: larsbx/pisot-substitution-conjecture-research
           path: pisot-substitution-conjecture-research
           token: ${{ secrets.ESTATE_TOKEN || github.token }}
+      - uses: actions/checkout@v4
+        if: ${{ secrets.ESTATE_TOKEN != '' }}
+        with:
+          repository: larsbx/mandelbrot-bulbs-and-ford-circles-research
+          path: mandelbrot-bulbs-and-ford-circles-research
+          token: ${{ secrets.ESTATE_TOKEN }}
+      - uses: actions/checkout@v4
+        if: ${{ secrets.ESTATE_TOKEN != '' }}
+        with:
+          repository: larsbx/finite-math-kernels
+          path: finite-math-kernels
+          token: ${{ secrets.ESTATE_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -55,3 +70,6 @@ jobs:
         run: |
           python -m vizops
           pytest tests/test_estate.py -q
+          if [ -d ../mandelbrot-bulbs-and-ford-circles-research ]; then
+            python -m vizops page wake-to-mandelbrot bulbs-and-ford-circles
+          fi

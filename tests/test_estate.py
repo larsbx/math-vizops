@@ -14,7 +14,9 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops.sources import load
+from vizops import bulbs, wake
+from vizops.atlas.build import oracle
+from vizops.sources import load, module, pages
 
 REQUIRED = os.environ.get("VIZOPS_REQUIRE_SOURCES") == "1"
 
@@ -32,3 +34,49 @@ def test_the_real_artifact_draws(scene):
     assert len(set(placed.values())) == len(placed)
     assert {n.term for n in drawn.nodes} <= set(hues)
     assert drawn.used_kinds()
+
+
+PAGES = {p.builder: p for p in pages()}
+
+
+def checkout_of(page):
+    checkout = root() / page.checkout
+    if not checkout.is_dir():
+        message = f"no checkout of {page.repo} under {root()}"
+        pytest.fail(message) if REQUIRED else pytest.skip(message)
+    return checkout
+
+
+def test_the_real_exclusion_oracle_decides_the_pinned_box():
+    """The atlas borrows its box verdicts from upstream rather than copying the
+    oracle, so this is where a renamed or reshaped oracle is caught."""
+    ie = oracle(checkout_of(PAGES["atlas"]))
+    excluded, forbidden, failures = ie.excluded_count(ie.c_minus_2_box(), 2, 1, 3)
+    assert excluded == forbidden and not failures
+
+
+def test_the_real_wake_module_tabulates_every_reduced_angle():
+    page = PAGES["wake"]
+    table = wake.rows(module(checkout_of(page), page.path))
+    assert len(table) == 45  # sum of phi(q) for 2 <= q <= 12
+    assert all(r["cycle"] == sorted(r["cycle"]) and r["hi"] - r["lo"] == 1 for r in table)
+
+
+def test_the_committed_still_prints_what_the_module_says():
+    """The 3/7 still is drawn by hand, so it is held to the module here: a
+    change upstream that moves these numbers fails until the still is redrawn."""
+    page = PAGES["wake"]
+    (row,) = [r for r in wake.rows(module(checkout_of(page), page.path)) if (r["p"], r["q"]) == (3, 7)]
+    claims = wake.still_claims(wake.STILL.read_text(encoding="utf-8"))
+    assert claims == {k: row[k] for k in ("cycle", "lo", "hi", "den")}
+
+
+def test_the_real_certificates_sweep_and_germ_transcribe():
+    """Where an upstream file changes shape, this is what fails."""
+    page = PAGES["bulbs"]
+    missing = [repo for repo, _ in page.files() if not (root() / repo.split("/")[-1]).is_dir()]
+    if missing:
+        message = f"no checkout of {', '.join(sorted(set(missing)))} under {root()}"
+        pytest.fail(message) if REQUIRED else pytest.skip(message)
+    data = bulbs.transcribe(*(bulbs.read(root(), repo, path)[0] for repo, path in page.files()))
+    assert len(data["bulbs"]) == 79 and len(data["dense"]) == 504 and len(data["iota"]) == 22

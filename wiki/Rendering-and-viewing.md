@@ -65,6 +65,30 @@ python -m vizops wiki --publish
   revision is a wiki nobody can clone; a still plus the command that made it
   is reproducible and small.
 
+## Pages
+
+Three surfaces are HTML pages rather than manim scenes — see [[Pages]] for
+what each draws. Each lands at `out/<id>.html`; open it in a browser.
+
+```sh
+python -m vizops page mandelbrot-atlas                  # pixi run atlas-dataset in the sibling checkout
+python -m vizops page mandelbrot-atlas --dataset d.json # or its saved output
+python -m vizops page wake-to-mandelbrot                # reads kernel/bulbford/wake.py from its checkout
+python -m vizops page bulbs-and-ford-circles            # transcribes four committed certificate and data files
+```
+
+For the atlas, no `pixi` and no `--dataset` is `inconclusive`; a missing
+checkout, a malformed dataset or a traced position that disagrees with its
+exact type is `refused` and writes nothing. For the wake page, a missing
+checkout or a `wake.py` that no longer answers as the page reads it is
+`refused`; for Bulbs & Ford Circles, so is a missing file, another schema, or
+centre and antipode certificates that disagree about which bulbs exist — see
+[[Outcomes]].
+
+The wake page's 3/7 still:
+
+![3/7 wake cycle mapped to the satellite root](images/wake-cycle-3-7.svg)
+
 ## Why CI renders nothing
 
 A headless runner has no GL context and usually no Pango. CI therefore runs
