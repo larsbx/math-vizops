@@ -125,6 +125,10 @@ def render(
     written = [
         p for p in out.rglob("*")
         if p.is_file() and before.get(p) != p.stat().st_mtime and p.suffix.lower() in WANTED[still]
+        and p.stat().st_size > 0
+        and scene.scene not in p.relative_to(out).parts[:-1]
+        and "partial_movie_files" not in p.relative_to(out).parts[:-1]
+        and not p.stem.endswith("_temp")
     ]
     if not written:
         wanted = "an image" if still else "a movie"

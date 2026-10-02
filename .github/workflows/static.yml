@@ -1,43 +1,101 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
-
+name: Build and deploy generated Pages
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [main]
+  pull_request:
   workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
-  # Single deploy job since we're just deploying
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: math-vizops
+          persist-credentials: false
+      # PRs run deterministic controls without receiving sibling credentials.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e '.[test]'
+        working-directory: math-vizops
+      - run: python -m vizops --check && pytest -q
+        working-directory: math-vizops
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          repository: larsbx/finite-mandelbrot-research
+          path: finite-mandelbrot-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          repository: larsbx/pisot-substitution-conjecture-research
+          path: pisot-substitution-conjecture-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          repository: larsbx/mandelbrot-bulbs-and-ford-circles-research
+          path: mandelbrot-bulbs-and-ford-circles-research
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+        with:
+          repository: larsbx/finite-math-kernels
+          path: finite-math-kernels
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+          persist-credentials: false
+      - name: Check real upstream artifacts
+        if: github.event_name != 'pull_request'
+        working-directory: math-vizops
+        env:
+          VIZOPS_REQUIRE_SOURCES: '1'
+        run: python -m vizops && pytest tests/test_estate.py -q
+      - uses: prefix-dev/setup-pixi@v0.9.2
+        if: github.event_name != 'pull_request'
+        with:
+          run-install: false
+      - name: Install headless renderer
+        if: github.event_name != 'pull_request'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libgl1-mesa-dri libegl1 libpango1.0-dev ffmpeg fonts-dejavu-core fonts-noto-core
+          pip install -e './math-vizops[render]'
+      - name: Build all pages and canonical media with software GL
+        if: github.event_name != 'pull_request'
+        working-directory: math-vizops
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a python -m vizops site --sources .. --out out/site --quality low
+      - name: Preserve manifest and diagnostics even on unsuccessful builds
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-build-evidence
+          path: math-vizops/out/site
+          if-no-files-found: warn
+      - uses: actions/upload-pages-artifact@v3
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          path: math-vizops/out/site
   deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
+      - uses: actions/deploy-pages@v4
         id: deployment
-        uses: actions/deploy-pages@v5

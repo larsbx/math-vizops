@@ -196,3 +196,13 @@ def test_the_finished_movie_wins_over_manims_partial_files(estate, scene, monkey
     monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, body)))
     outcome = render(scene, estate, out=tmp_path / "out")
     assert isinstance(outcome, Rendered) and outcome.output.endswith("out/ClaimGraph.mp4")
+
+
+@pytest.mark.parametrize('body', [
+    'partials = out / "ClaimGraph"; partials.mkdir(parents=True, exist_ok=True); (partials / "0001.mp4").write_bytes(b"partial")',
+    'out.mkdir(parents=True, exist_ok=True); (out / "scene.mp4").write_bytes(b"")',
+    'out.mkdir(parents=True, exist_ok=True); (out / "scene_temp.mp4").write_bytes(b"unfinished")',
+])
+def test_partial_empty_or_temporary_output_is_not_a_render(estate, scene, monkeypatch, tmp_path, body):
+    monkeypatch.setattr('vizops.bridge.renderer', lambda: str(stand_in(tmp_path, body)))
+    assert isinstance(render(scene, estate, out=tmp_path / 'out'), Inconclusive)

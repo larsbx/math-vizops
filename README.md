@@ -212,9 +212,8 @@ manimgl vizops/scenes.py ClaimGraph -w   # the same scene, driven directly
 ```
 
 It needs a system Pango and FFmpeg (`apt install libpango1.0-dev ffmpeg`, or
-`brew install pango ffmpeg`) and a working GL context. A headless runner
-usually has neither, which is why CI renders nothing and why an absent
-renderer is `inconclusive` rather than red.
+`brew install pango ffmpeg`) and a working GL context. The Pages workflow provisions these dependencies and attempts rendering with
+Xvfb and Mesa. An absent renderer remains `inconclusive`, and blocks deployment.
 
 ## What CI checks
 
@@ -259,3 +258,28 @@ to keep:
   be built, rather than being detected later.
 * **P6 — fail-closed has a direction.** A missing source refuses; a missing
   renderer does not. The table above is the whole of it.
+
+## Generated-site deployment
+
+`python -m vizops site --sources .. --out out/site --quality low` builds every
+registered HTML page (including the atlas through its upstream Pixi emitter),
+and a canonical still and video for every registered scene. Use a fresh output
+directory. Inputs must be clean Git checkouts. The index embeds verified media,
+links the interactive pages, and repeats the source notes and non-authorizing
+caveat. No source checkout, hand-drawn substitute, or partial renderer output
+is published.
+
+`manifest.json` records each input revision and a SHA-256 digest of its tracked
+file/digest map, the registry digest, each build verdict, and each generated
+file digest. `manifest.sha256` binds the deterministic JSON bytes. Timestamps
+and temporary paths are omitted; video bytes can still vary between renderer
+versions. Inputs are checked again after building, so a changed checkout blocks
+publication. Digests attest bytes, never mathematical correctness.
+
+Pages now builds under Xvfb with Mesa software GL, Pango, FFmpeg, TeX, ManimGL
+and Pixi. A private sibling needs `ESTATE_TOKEN` read access; absent sources
+refuse. Exit 1 (`refused`) or 2 (`inconclusive`) blocks the Pages upload and
+deployment. Build evidence is retained separately for diagnosis. PRs run the
+unit and surface gates without sibling secrets or deployment permissions;
+complete rendering runs on main or manual dispatch. Wiki mirroring remains
+in `wiki.yml`.
