@@ -213,8 +213,9 @@ manimgl vizops/scenes.py ClaimGraph -w   # the same scene, driven directly
 
 It needs a system Pango and FFmpeg (`apt install libpango1.0-dev ffmpeg`, or
 `brew install pango ffmpeg`) and a working GL context. A headless runner
-usually has neither, which is why CI renders nothing and why an absent
-renderer is `inconclusive` rather than red.
+usually has neither, which is why the lightweight conformance workflow renders nothing and why an absent
+renderer is `inconclusive` rather than red. The dedicated gallery workflow below
+installs a software-GL runtime and does perform actual rendering.
 
 ## What CI checks
 
@@ -259,3 +260,41 @@ to keep:
   be built, rather than being detected later.
 * **P6 — fail-closed has a direction.** A missing source refuses; a missing
   renderer does not. The table above is the whole of it.
+
+
+## Render → embed → publish → deploy
+
+`python -m vizops gallery --sources /path/to/estate --out dist --report publication-report.json`
+creates a complete browser-playable gallery. On a headless Linux renderer, prefix
+it with `xvfb-run -a` and set `LIBGL_ALWAYS_SOFTWARE=1`. Install FFmpeg, Pango,
+Mesa, Xvfb/Xauth, a C compiler, and `manimgl==1.7.2`; the publishing workflow
+installs these explicitly. `dist` must be absent: old publications are never reused
+as if a fresh render succeeded.
+
+The build snapshots each upstream Git HEAD, renders the registered scenes from
+those committed bytes, transcodes finished movies to H.264/yuv420p MP4 with
+fast-start metadata, validates duration and dimensions with FFprobe, and extracts
+posters from the verified movies. `index.html` embeds native video players and
+download links; `manifest.json` records source revisions/digests, media digests,
+renderer version, quality, and the workflow's build revision. Snapshot repositories,
+raw upstream files, partial render files, and credentials are excluded from `dist`.
+
+The dedicated `static.yml` workflow replaces the old whole-repository upload:
+
+- Pull requests run conformance and **real software-GL rendering**, then upload a
+  downloadable gallery bundle and machine-readable publication report for review.
+- Main pushes and main-only manual runs do the same checks, upload **only `dist`**,
+  and deploy it to the existing GitHub Pages environment in a separate job.
+- Source checkout uses `persist-credentials: false`; private siblings require the
+  existing read-scoped `ESTATE_TOKEN`. A missing checkout fails the build rather
+  than publishing a partial gallery. Forks without source access cannot deploy.
+- Any refused or inconclusive scene, renderer failure, invalid movie, or missing
+  poster blocks publication and deployment. The previous deployed gallery remains
+  available. Outcome reports preserve the distinction between refusal and
+  inconclusive; a missing GL runtime is never counted as rendering success.
+
+The gallery uses relative media URLs, so it embeds correctly under a project Pages
+path or when its bundle is served locally. All scene caveats and provenance remain
+visible. The pipeline publishes derived display artifacts and changes no research
+claim or source authority. CI checks against renderer stand-ins remain useful unit
+tests; the gallery workflow additionally exercises the actual ManimGL runtime.

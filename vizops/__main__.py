@@ -94,10 +94,12 @@ def publish(remote: str, dry_run: bool) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="vizops", description=__doc__.splitlines()[0])
-    parser.add_argument("command", nargs="?", default="report", choices=("report", "render", "still", "page", "wiki"))
+    parser.add_argument("command", nargs="?", default="report", choices=("report", "render", "still", "page", "wiki", "gallery"))
     parser.add_argument("ids", nargs="*", help="scene or page ids; all of them by default")
     parser.add_argument("--sources", type=Path, default=None, help="directory holding the sibling checkouts")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="where manimgl and `page` write")
+    parser.add_argument("--report", type=Path, default=Path("publication-report.json"),
+                        help="machine-readable gallery build outcomes")
     parser.add_argument("--into", type=Path, default=STILLS, help="where `still` files its images")
     parser.add_argument("--dataset", type=Path, default=None,
                         help="with `page mandelbrot-atlas`: the emitter's JSON, instead of running it with pixi")
@@ -127,6 +129,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         outcomes = tuple(build_page(p, root(args.sources), dataset=args.dataset, out=args.out) for p in chosen)
         print("\n".join(map(str, outcomes)))
         return worst(outcomes)
+    if args.command == "gallery":
+        from .gallery import build
+        return build(chosen, args.sources, out=args.out, report=args.report, quality=args.quality)
     if args.command == "report":
         return report(chosen, args.sources)
     if args.command == "still":
