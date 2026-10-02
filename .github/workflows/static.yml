@@ -12,6 +12,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pages_artifact: ${{ steps.pages-artifact.outputs.name }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,12 +81,18 @@ jobs:
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: site-build-evidence
+          name: site-build-evidence-${{ github.run_attempt }}
           path: math-vizops/out/site
           if-no-files-found: warn
+      # Carry the producing attempt's name across jobs, including deploy-only reruns.
+      - name: Name this attempt's Pages artifact
+        id: pages-artifact
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: echo "name=github-pages-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@v3
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
+          name: ${{ steps.pages-artifact.outputs.name }}
           path: math-vizops/out/site
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -99,3 +107,5 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
+        with:
+          artifact_name: ${{ needs.build.outputs.pages_artifact }}
