@@ -4,6 +4,7 @@ a refusal that says where it looked."""
 import pytest
 
 from vizops.adapters import ADAPTERS
+from vizops.bridge import SPECIAL_ADAPTERS
 from vizops.sources import MANIFEST, Scene, SourceError, by_id, load
 
 MANIFEST_HEAD = 'format = "vizops sources 1"\n'
@@ -28,7 +29,7 @@ def test_the_shipped_manifest_loads_and_every_adapter_exists():
     scenes = load()
     assert scenes
     assert len(by_id(scenes)) == len(scenes)
-    assert {s.adapter for s in scenes} <= set(ADAPTERS)
+    assert {s.adapter for s in scenes} <= set(ADAPTERS) | set(SPECIAL_ADAPTERS)
 
 
 def test_a_checkout_directory_is_the_repository_name():

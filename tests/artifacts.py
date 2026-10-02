@@ -67,6 +67,32 @@ related = ["substitution"]
 """
 
 
+WAKE_MODULE = """\
+from fractions import Fraction
+
+
+def double(theta):
+    return 2 * theta % 1
+
+
+def mechanical(p, q, r):
+    return int("".join("1" if (r + k * p) % q >= q - p else "0" for k in range(q)), 2)
+
+
+def rotation_cycle(p, q):
+    x, out = Fraction(mechanical(p, q, 0), 2 ** q - 1), []
+    for _ in range(q):
+        out.append(x)
+        x = double(x)
+    return tuple(sorted(out))
+
+
+def wake(p, q):
+    c = rotation_cycle(p, q)
+    return min(zip(c, c[1:]), key=lambda pair: pair[1] - pair[0])
+"""
+
+
 def graph(**overrides: Any) -> bytes:
     return json.dumps({**GRAPH, **overrides}).encode("utf-8")
 
@@ -89,7 +115,13 @@ def estate(root: Path, *, graph_bytes: bytes | None = None, catalogue: str | Non
     for scene in load():
         artifact = scene.artifact(root)
         artifact.parent.mkdir(parents=True, exist_ok=True)
-        artifact.write_bytes(
-            (graph_bytes or graph()) if scene.adapter == "typed_graph" else (catalogue or CATALOGUE).encode("utf-8")
-        )
+        if scene.adapter == "typed_graph":
+            payload = graph_bytes or graph()
+        elif scene.adapter == "object_catalogue":
+            payload = (catalogue or CATALOGUE).encode("utf-8")
+        elif scene.adapter == "wake_module":
+            payload = WAKE_MODULE.encode("utf-8")
+        else:
+            raise AssertionError(f"test fixture has no source for adapter {scene.adapter!r}")
+        artifact.write_bytes(payload)
     return root

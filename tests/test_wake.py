@@ -13,13 +13,18 @@ import pytest
 from vizops.__main__ import main
 from vizops.figure import CAVEAT
 from vizops.outcome import Refused, Rendered
-from vizops.sources import SourceError, pages
-from vizops.wake import QMAX, STILL, TEMPLATE, build, still_claims
+from vizops.sources import SourceError, load, pages
+from vizops.wake import QMAX, STILL, TEMPLATE, WakeCycleFigure, build, scene_figure, still_claims
 
 PAGE = next(p for p in pages() if p.id == "wake-to-mandelbrot")
+SCENE = next(s for s in load() if s.id == "wake-cycle-3-7")
 #: A faithful stand-in: the same construction, so the rows it yields are right.
 STUB = '''
 from fractions import Fraction
+
+
+def double(theta):
+    return 2 * theta % 1
 
 
 def mechanical(p, q, r):
@@ -30,7 +35,7 @@ def rotation_cycle(p, q):
     x, out = Fraction(mechanical(p, q, 0), 2 ** q - 1), []
     for _ in range(q):
         out.append(x)
-        x = 2 * x % 1
+        x = double(x)
     return tuple(sorted(out))
 
 
@@ -55,6 +60,18 @@ def test_the_template_takes_each_placeholder_once_and_computes_no_angle():
     text = TEMPLATE.read_text(encoding="utf-8")
     assert all(text.count(mark) == 1 for mark in ("__DATA__", "__STAMP__", "__QMAX__"))
     assert "mechanical" not in text and "cycleNums" not in text  # the page looks up; it does not derive
+
+
+def test_the_manim_payload_is_the_same_upstream_3_7_specimen(tmp_path):
+    drawn = scene_figure(SCENE, estate(tmp_path))
+    assert isinstance(drawn, WakeCycleFigure)
+    assert drawn.word == 21 and drawn.denominator == 127
+    assert drawn.orbit == (21, 42, 84, 41, 82, 37, 74)
+    assert drawn.angular == (21, 37, 41, 42, 74, 82, 84)
+    assert drawn.characteristic == (41, 42)
+    assert drawn.provenance.repo == SCENE.repo
+    assert -0.607 < drawn.root_re < -0.606
+    assert 0.412 < drawn.root_im < 0.413
 
 
 def test_the_page_embeds_every_reduced_angle_with_its_stamp(tmp_path):

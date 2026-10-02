@@ -30,6 +30,7 @@ from . import surfaces, wiki
 from .bridge import DEFAULT_OUT, QUALITIES, REFUSALS, figure, render, renderer, root, still
 from .outcome import Outcome, Refused, worst
 from .sources import MANIFEST, Page, Scene, load, pages
+from .wake.scene import WakeCycleFigure
 
 STILLS = surfaces.WIKI / surfaces.IMAGES
 #: The packages a `[[page]]` may name as its builder, each exporting `build`.
@@ -46,10 +47,16 @@ def report(scenes: Sequence[Scene], sources: Path | None) -> int:
             refused += 1
             print(f"refused   {scene.id}\n  {refusal}\n")
             continue
-        classes = ", ".join(f"{t.name} ({len(drawn.members()[t.id])})" for t in drawn.populated())
         print(f"ready     {scene.id}: {drawn.title}")
         print(f"          {drawn.provenance.stamp}")
-        print(f"          {len(drawn.nodes)} nodes, {len(drawn.edges)} edges · {classes}\n")
+        if isinstance(drawn, WakeCycleFigure):
+            print(
+                f"          {drawn.q}-cycle · θ₋={drawn.theta_minus}/{drawn.denominator} · "
+                f"θ₊={drawn.theta_plus}/{drawn.denominator}\n"
+            )
+        else:
+            classes = ", ".join(f"{t.name} ({len(drawn.members()[t.id])})" for t in drawn.populated())
+            print(f"          {len(drawn.nodes)} nodes, {len(drawn.edges)} edges · {classes}\n")
     exe = renderer()
     print(f"renderer: {exe or 'absent — `render` would report inconclusive, not failure'}")
     return 1 if refused else 0

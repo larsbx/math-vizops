@@ -31,7 +31,7 @@ IMAGES = "images"
 MODULES = (
     "sources.py", "adapters.py", "figure.py", "layout.py",
     "palette.py", "outcome.py", "bridge.py", "scenes.py", "surfaces.py", "wiki.py",
-    "atlas/build.py", "atlas/trace.py", "wake/build.py", "bulbs/build.py",
+    "atlas/build.py", "atlas/trace.py", "wake/build.py", "wake/scene.py", "bulbs/build.py",
 )
 
 
@@ -71,7 +71,7 @@ class Block:
 
 def scene_table(scenes: Sequence[Scene]) -> str:
     rows = [
-        "| Scene | Draws | Source artifact | manim scene |",
+        "| Scene | Draws | Source surface | manim scene |",
         "| --- | --- | --- | --- |",
         *(f"| `{s.id}` | {s.title} | [`{s.path}`](https://github.com/{s.repo}/blob/main/{s.path}) "
           f"in `{s.repo}` | `{s.scene}` |" for s in scenes),

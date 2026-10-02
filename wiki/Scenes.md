@@ -7,10 +7,11 @@ Each scene is one entry in [`vizops/sources.toml`](https://github.com/larsbx/mat
 <!-- BEGIN generated scene table (python -m vizops --write); do not edit between the markers -->
 <!-- Rendered by vizops/surfaces.py from vizops/sources.toml. -->
 
-| Scene | Draws | Source artifact | manim scene |
+| Scene | Draws | Source surface | manim scene |
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
 | `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
+| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`kernel/bulbford/wake.py`](https://github.com/larsbx/mandelbrot-bulbs-and-ford-circles-research/blob/main/kernel/bulbford/wake.py) in `larsbx/mandelbrot-bulbs-and-ford-circles-research` | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
 
@@ -39,11 +40,19 @@ _No still published yet._ Run `python -m vizops still psc-object-catalogue` and 
 
 > The single machine-readable source of docs/mathematical-object-catalogue.md.
 
+### 3/7 wake cycle to Mandelbrot bulb root
+
+`WakeCycleToMandelbrot` — drawn from [`kernel/bulbford/wake.py`](https://github.com/larsbx/mandelbrot-bulbs-and-ford-circles-research/blob/main/kernel/bulbford/wake.py) in `larsbx/mandelbrot-bulbs-and-ford-circles-research`.
+
+_No still published yet._ Run `python -m vizops still wake-cycle-3-7` and commit `wiki/images/wake-cycle-3-7.png`.
+
+> Exact cycle data are loaded from wake.py for p/q = 3/7; the root coordinate is a numerical display aid and the rational parameter-ray landing relation is the imported [DH/Mil00].
+
 <!-- END generated gallery -->
 
 ## What makes an artifact drawable
 
-* It is **machine-readable** and its own repository generates and checks it.
+* It is an **owned source surface** its repository checks: normally a machine-readable artifact, or an exact module interface when VizOps calls that module rather than reimplementing it.
 * It **declares its own vocabulary** — the classes nodes can be in, and the
   kinds edges can be. vizops colours and columns by that declaration.
 * Its nodes carry an id and a label; its edges name two node ids.

@@ -30,6 +30,7 @@ from .figure import Figure, FigureError, Provenance
 from .outcome import Inconclusive, Outcome, Refused, Rendered
 from .palette import PaletteError, assign
 from .sources import DEFAULT_ROOT, Scene, SourceError, by_id, load
+from .wake.scene import WakeCycleFigure, figure as wake_cycle_figure
 
 SCENES = Path(__file__).resolve().parent / "scenes.py"
 ENV_ROOT = "VIZOPS_SOURCES"
@@ -41,6 +42,8 @@ QUALITIES = {"low": "-l", "medium": "-m", "high": "--hd", "uhd": "--uhd"}
 WANTED = {False: (".mp4", ".mov", ".webm", ".gif"), True: (".png",)}
 #: Anything vizops raises when it declines to draw.
 REFUSALS = (SourceError, AdapterError, FigureError, PaletteError)
+SPECIAL_ADAPTERS = frozenset({"wake_module"})
+Drawable = Figure | WakeCycleFigure
 
 
 def root(explicit: Path | None = None) -> Path:
@@ -49,19 +52,30 @@ def root(explicit: Path | None = None) -> Path:
     return Path(explicit or os.environ.get(ENV_ROOT) or DEFAULT_ROOT)
 
 
-def figure(scene: Scene, sources: Path | None = None) -> Figure:
-    """Read the artifact, transcribe it, and check it can be drawn -- or raise
-    one of `REFUSALS`."""
+def figure(scene: Scene, sources: Path | None = None) -> Drawable:
+    """Read the source surface and check it can be drawn -- or raise one of
+    `REFUSALS`.
+
+    Most scenes transcribe committed machine-readable artifacts through an
+    adapter.  The wake scene is deliberately module-backed: it calls the exact
+    upstream wake module, the same source already used by the interactive page,
+    so vizops does not grow a second implementation of that arithmetic.
+    """
+    source_root = root(sources)
+    if scene.adapter == "wake_module":
+        return wake_cycle_figure(scene, source_root)
+
     adapter = ADAPTERS.get(scene.adapter)
     if adapter is None:
-        raise SourceError(f"{scene.id}: no adapter named {scene.adapter!r}; have {', '.join(sorted(ADAPTERS))}")
-    raw, digest = scene.read(root(sources))
+        have = sorted((*ADAPTERS, *SPECIAL_ADAPTERS))
+        raise SourceError(f"{scene.id}: no adapter named {scene.adapter!r}; have {', '.join(have)}")
+    raw, digest = scene.read(source_root)
     drawn = adapter(raw, Provenance(scene.repo, scene.path, digest, scene.note), scene.title)
     assign(tuple(t.id for t in drawn.terms))  # a figure with more classes than hues is refused here,
     return drawn                              # where the message is readable, not inside the renderer
 
 
-def figure_for(source_id: str, sources: Path | None = None) -> Figure:
+def figure_for(source_id: str, sources: Path | None = None) -> Drawable:
     """The figure a `scenes.py` class draws. Kept here so the scene file holds
     no policy: a scene knows its id and nothing else about where data lives."""
     scenes = by_id(load())
