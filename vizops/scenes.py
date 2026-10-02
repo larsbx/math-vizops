@@ -49,6 +49,9 @@ from vizops.wake.scene import WakeCycleFigure
 BOX = (2.8, 0.62)  # the most a node box is allowed to take; it shrinks to fit
 BADGE_FITS = 0.44  # below this box height the badge is dropped rather than overlapped
 TITLE, HEADER, LABEL, SMALL = 30, 20, 16, 13
+WAKE_FOOTER_CEILING = -3.10  # reserve the bottom band for provenance + caveat
+WAKE_LANDING_NOTE_Y = -2.68
+WAKE_COORDINATE_Y = -2.94
 
 
 class FigureScene(Scene):
@@ -180,11 +183,11 @@ class WakeCycleToMandelbrot(Scene):
         landing = Text(
             "[DH/Mil00] imported landing · ray paths schematic",
             font_size=SMALL,
-        ).set_color(imported).move_to([0, -2.68, 0])
+        ).set_color(imported).move_to([0, WAKE_LANDING_NOTE_Y, 0])
         coordinate = Text(
             f"display aid: c ≈ {figure.root_re:+.6f}{figure.root_im:+.6f}i",
             font_size=SMALL,
-        ).set_color(palette.MUTED).move_to([0, -2.94, 0])
+        ).set_color(palette.MUTED).move_to([0, WAKE_COORDINATE_Y, 0])
         self.play(FadeIn(VGroup(left, right, root), lag_ratio=0.12), run_time=1.0)
         self.play(ShowCreation(rays, lag_ratio=0.15), run_time=1.2)
         self.bring_to_front(left, right, root)
