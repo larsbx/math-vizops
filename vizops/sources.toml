@@ -33,6 +33,15 @@ adapter = "object_catalogue"
 scene = "ObjectCatalogue"
 note = "The single machine-readable source of docs/mathematical-object-catalogue.md."
 
+[[scene]]
+id = "wake-cycle-3-7"
+title = "3/7 wake cycle to Mandelbrot bulb root"
+repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
+path = "kernel/bulbford/wake.py"
+adapter = "wake_module"
+scene = "WakeCycleToMandelbrot"
+note = "Exact cycle data are loaded from wake.py for p/q = 3/7; the root coordinate is a numerical display aid and the rational parameter-ray landing relation is the imported [DH/Mil00]."
+
 # A page is a self-contained HTML surface rather than a manim scene, built by
 # `builder` (a package under vizops/). Its source is code the owning repository
 # runs -- an emitter, a module -- not a file it commits, so `path` names that
