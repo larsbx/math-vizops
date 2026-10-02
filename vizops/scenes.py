@@ -20,12 +20,15 @@ is a derived surface; it shows what one revision said and authorizes nothing.
 
 from __future__ import annotations
 
+from math import cos, pi, sin
+
 from manimlib import (
     DL,
     DOWN,
     DR,
     LEFT,
     UL,
+    UR,
     UP,
     DashedLine,
     FadeIn,
@@ -41,6 +44,7 @@ from manimlib import (
 from vizops import layout, palette
 from vizops.bridge import figure_for
 from vizops.figure import Figure, Node
+from vizops.wake.scene import WakeCycleFigure
 
 BOX = (2.8, 0.62)  # the most a node box is allowed to take; it shrinks to fit
 BADGE_FITS = 0.44  # below this box height the badge is dropped rather than overlapped
@@ -99,6 +103,117 @@ class ClaimGraph(FigureScene):
 
 class ObjectCatalogue(FigureScene):
     source_id = "psc-object-catalogue"
+
+
+class WakeCycleToMandelbrot(Scene):
+    """Three beats: exact orbit, characteristic pair, imported landing."""
+
+    source_id = "wake-cycle-3-7"
+
+    def construct(self) -> None:
+        figure = figure_for(self.source_id)
+        if not isinstance(figure, WakeCycleFigure):
+            raise TypeError(f"{self.source_id}: expected WakeCycleFigure, got {type(figure).__name__}")
+
+        self.add(FullScreenRectangle().set_fill(palette.SURFACE, 1).set_stroke(width=0))
+        self.add(wake_chrome(figure))
+
+        exact, characteristic, imported = palette.RING[0], palette.RING[3], palette.RING[6]
+
+        orbit_title = Text(
+            f"exact doubling orbit · p/q = {figure.p}/{figure.q}",
+            font_size=HEADER,
+        ).set_color(palette.INK).move_to([0, 2.75, 0])
+        orbit_positions = [
+            [3.0 * cos(pi / 2 - 2 * pi * i / figure.q),
+             1.15 * sin(pi / 2 - 2 * pi * i / figure.q) + 0.9, 0]
+            for i in range(figure.q)
+        ]
+        orbit_boxes = [
+            wake_box(str(n), point, exact)
+            for n, point in zip(figure.orbit, orbit_positions)
+        ]
+        self.play(FadeIn(VGroup(orbit_title, *orbit_boxes), lag_ratio=0.08), run_time=1.6)
+        orbit_wires = VGroup(*(
+            Line(orbit_boxes[i].get_center(), orbit_boxes[(i + 1) % figure.q].get_center())
+            .set_stroke(palette.RULE, 1.5, opacity=0.85)
+            for i in range(figure.q)
+        ))
+        self.play(ShowCreation(orbit_wires, lag_ratio=0.08), run_time=1.8)
+        self.add(
+            Text(f"×2 mod {figure.denominator}", font_size=SMALL)
+            .set_color(palette.MUTED).move_to([0, 0.9, 0])
+        )
+
+        angular_title = Text(
+            "angular order · shortest adjacent pair is characteristic",
+            font_size=LABEL,
+        ).set_color(palette.MUTED).move_to([0, -0.72, 0])
+        step = 0.92
+        start = -step * (figure.q - 1) / 2
+        angular_boxes = [
+            wake_box(
+                str(n),
+                [start + i * step, -1.2, 0],
+                characteristic if n in figure.characteristic else exact,
+                width=0.72,
+                height=0.42,
+            )
+            for i, n in enumerate(figure.angular)
+        ]
+        pair = Text(
+            f"θ₋ = {figure.theta_minus}/{figure.denominator}    "
+            f"θ₊ = {figure.theta_plus}/{figure.denominator}    "
+            f"width = 1/{figure.denominator}",
+            font_size=LABEL,
+        ).set_color(characteristic).move_to([0, -1.72, 0])
+        self.play(FadeIn(VGroup(angular_title, *angular_boxes, pair), lag_ratio=0.06), run_time=1.5)
+
+        left = wake_box(f"θ₋  {figure.theta_minus}/{figure.denominator}", [-2.8, -2.35, 0], characteristic)
+        right = wake_box(f"θ₊  {figure.theta_plus}/{figure.denominator}", [2.8, -2.35, 0], characteristic)
+        root = wake_box(f"{figure.p}/{figure.q} bulb root", [0, -2.65, 0], imported, width=1.65)
+        rays = VGroup(
+            DashedLine(left.get_center(), root.get_center()).set_stroke(characteristic, 1.8),
+            DashedLine(right.get_center(), root.get_center()).set_stroke(characteristic, 1.8),
+        )
+        landing = Text(
+            "[DH/Mil00] imported landing · ray paths schematic",
+            font_size=SMALL,
+        ).set_color(imported).move_to([0, -3.15, 0])
+        coordinate = Text(
+            f"display aid: c ≈ {figure.root_re:+.6f}{figure.root_im:+.6f}i",
+            font_size=SMALL,
+        ).set_color(palette.MUTED).move_to([0, -3.42, 0])
+        self.play(FadeIn(VGroup(left, right, root), lag_ratio=0.12), run_time=1.0)
+        self.play(ShowCreation(rays, lag_ratio=0.15), run_time=1.2)
+        self.play(FadeIn(VGroup(landing, coordinate), lag_ratio=0.1), run_time=0.8)
+        self.wait(2)
+
+
+def wake_chrome(figure: WakeCycleFigure) -> VGroup:
+    """Title, provenance and the exact/imported/display distinction."""
+    title = Text(figure.title, font_size=TITLE).set_color(palette.INK).to_corner(UL, buff=0.35)
+    footer = VGroup(*(
+        Text(line, font_size=SMALL).set_color(palette.MUTED)
+        for line in (figure.provenance.stamp, figure.caveat)
+    )).arrange(DOWN, aligned_edge=LEFT, buff=0.1).to_corner(DL, buff=0.3)
+    key = Text(
+        "blue: exact upstream · yellow: characteristic · violet: imported landing",
+        font_size=SMALL,
+    ).set_color(palette.MUTED).to_corner(UR, buff=0.3)
+    return VGroup(title, footer, key)
+
+
+def wake_box(label: str, point, hue: str, *, width: float = 1.05, height: float = 0.5) -> VGroup:
+    """One directly labelled mark; colour is redundant, as in every scene."""
+    box = (
+        RoundedRectangle(width=width, height=height, corner_radius=0.1)
+        .set_fill(palette.SURFACE, 1)
+        .set_stroke(hue, 2)
+    )
+    text = Text(label, font_size=SMALL).set_color(palette.INK)
+    text.set_max_width(width - 0.16).set_max_height(height - 0.1).move_to(box)
+    return VGroup(box, text).move_to(point)
 
 
 def chrome(figure: Figure) -> VGroup:
