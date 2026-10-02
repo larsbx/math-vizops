@@ -5,5 +5,9 @@ build time; the raster and the root coordinate are drawn in the browser.
 """
 
 from .build import QMAX, STILL, TEMPLATE, build, rows, still_claims
+from .scene import WakeCycleFigure, figure as scene_figure
 
-__all__ = ["QMAX", "STILL", "TEMPLATE", "build", "rows", "still_claims"]
+__all__ = [
+    "QMAX", "STILL", "TEMPLATE", "build", "rows", "still_claims",
+    "WakeCycleFigure", "scene_figure",
+]
