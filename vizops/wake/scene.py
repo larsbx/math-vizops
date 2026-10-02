@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from fractions import Fraction
-import hashlib
 from math import cos, pi, sin
 from pathlib import Path
 
@@ -76,7 +75,7 @@ def figure(scene: Scene, sources: Path, p: int = P, q: int = Q) -> WakeCycleFigu
     raw, digest = scene.read(sources)
     checkout = Path(sources) / scene.checkout
     try:
-        wake = module(checkout, scene.path)
+        wake = module(checkout, scene.path, raw=raw)
         table = rows(wake, qmax=q)
         row = next(r for r in table if (r["p"], r["q"]) == (p, q))
 
@@ -98,11 +97,6 @@ def figure(scene: Scene, sources: Path, p: int = P, q: int = Q) -> WakeCycleFigu
     t = 2 * pi * p / q
     root_re = cos(t) / 2 - cos(2 * t) / 4
     root_im = sin(t) / 2 - sin(2 * t) / 4
-
-    # Re-hash the bytes here only as a consistency assertion: Scene.read is
-    # the authority for the digest placed in Provenance.
-    if digest != hashlib.sha256(raw).hexdigest():
-        raise FigureError("wake figure: source digest changed while being read")
 
     return WakeCycleFigure(
         title=scene.title,
