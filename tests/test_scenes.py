@@ -77,6 +77,25 @@ def test_the_wake_scene_prints_the_upstream_pair_and_evidence_boundary(estate):
     assert scene.waited
 
 
+def test_wake_wires_are_sent_behind_every_labelled_box(estate):
+    scene = scenes.WakeCycleToMandelbrot()
+    scene.construct()
+    labels = {
+        text.text
+        for mobject in scene.fronted
+        for text in _texts(mobject)
+    }
+    assert {"21", "42", "84", "41", "82", "37", "74"} <= labels
+    assert "θ₋  41/127" in labels
+    assert "θ₊  42/127" in labels
+    assert "3/7 bulb root" in labels
+
+
+def test_wake_final_annotations_stay_above_the_footer_band():
+    assert scenes.WAKE_LANDING_NOTE_Y > scenes.WAKE_FOOTER_CEILING
+    assert scenes.WAKE_COORDINATE_Y > scenes.WAKE_FOOTER_CEILING
+
+
 def test_the_stand_in_refuses_a_method_manim_does_not_have():
     with pytest.raises(AttributeError, match="has no"):
         manimlib_stub.Text("x").set_sparkle("bright")
