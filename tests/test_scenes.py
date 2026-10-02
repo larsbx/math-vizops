@@ -30,7 +30,7 @@ def drawn(request, estate):
 def test_the_scene_ids_are_the_manifest_ids():
     assert {s.scene: s.id for s in load()} == {
         cls.__name__: cls.source_id
-        for cls in (scenes.ClaimGraph, scenes.ObjectCatalogue)
+        for cls in (scenes.ClaimGraph, scenes.ObjectCatalogue, scenes.WakeCycleToMandelbrot)
     }
 
 
@@ -61,6 +61,20 @@ def test_the_frame_carries_the_stamp_and_the_caveat_and_the_edge_key(drawn):
 
 def test_the_scene_settles_rather_than_ending_on_a_move(drawn):
     assert drawn.waited
+
+
+def test_the_wake_scene_prints_the_upstream_pair_and_evidence_boundary(estate):
+    scene = scenes.WakeCycleToMandelbrot()
+    scene.construct()
+    drawn = scenes.figure_for(scene.source_id)
+    printed = _printed(scene)
+    assert drawn.orbit == (21, 42, 84, 41, 82, 37, 74)
+    assert drawn.angular == (21, 37, 41, 42, 74, 82, 84)
+    assert "θ₋ = 41/127" in printed and "θ₊ = 42/127" in printed
+    assert "[DH/Mil00] imported landing" in printed
+    assert drawn.provenance.stamp in printed and drawn.caveat in printed
+    assert any(isinstance(a, manimlib_stub.ShowCreation) for a in scene.played)
+    assert scene.waited
 
 
 def test_the_stand_in_refuses_a_method_manim_does_not_have():
