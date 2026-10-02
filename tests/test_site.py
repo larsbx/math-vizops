@@ -109,3 +109,17 @@ def test_pages_workflow_uploads_generated_bundle_and_gates_deployment():
     assert "if: success() && github.event_name != 'pull_request'" in workflow
     assert 'continue-on-error' not in workflow
     assert 'persist-credentials: true' not in workflow
+
+
+def test_pages_artifacts_are_attempt_scoped_and_deploy_uses_producing_attempt():
+    workflow = (Path(__file__).resolve().parents[1] / '.github/workflows/static.yml').read_text()
+    build, deploy = workflow.split('\n  deploy:', 1)
+    assert 'name: site-build-evidence-${{ github.run_attempt }}' in build
+    assert 'name=github-pages-${{ github.run_attempt }}' in build
+    assert 'pages_artifact: ${{ steps.pages-artifact.outputs.name }}' in build
+    upload = build.split('uses: actions/upload-pages-artifact@v3', 1)[1]
+    assert 'name: ${{ steps.pages-artifact.outputs.name }}' in upload
+    assert 'artifact_name: ${{ needs.build.outputs.pages_artifact }}' in deploy
+    # A deploy-only retry must still select the earlier successful build's artifact.
+    assert 'github.run_attempt' not in deploy
+    assert 'name: site-build-evidence\n' not in workflow
