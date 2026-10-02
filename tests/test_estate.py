@@ -17,6 +17,7 @@ from vizops.bridge import figure, root
 from vizops import bulbs, wake
 from vizops.atlas.build import oracle
 from vizops.sources import load, module, pages
+from vizops.wake.scene import WakeCycleFigure
 
 REQUIRED = os.environ.get("VIZOPS_REQUIRE_SOURCES") == "1"
 
@@ -27,6 +28,12 @@ def test_the_real_artifact_draws(scene):
         message = f"no checkout of {scene.repo} under {root()}"
         pytest.fail(message) if REQUIRED else pytest.skip(message)
     drawn = figure(scene)
+    if isinstance(drawn, WakeCycleFigure):
+        assert drawn.orbit == (21, 42, 84, 41, 82, 37, 74)
+        assert drawn.angular == (21, 37, 41, 42, 74, 82, 84)
+        assert drawn.characteristic == (41, 42)
+        return
+
     hues = palette.assign(tuple(t.id for t in drawn.terms))
     placed = layout.columns(tuple(t.id for t in drawn.populated()), drawn.members())
     assert drawn.nodes and drawn.edges
