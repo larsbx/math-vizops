@@ -35,6 +35,18 @@ def test_a_malformed_artifact_makes_the_report_fail(tmp_path, capsys):
     assert "not a node in this figure" in capsys.readouterr().out
 
 
+def test_a_broken_wake_module_is_refused_and_other_scenes_still_report(tmp_path, capsys):
+    broken = artifacts.estate(tmp_path / "estate")
+    wake_scene = next(s for s in load() if s.id == "wake-cycle-3-7")
+    wake_scene.artifact(broken).write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+
+    assert main(["--sources", str(broken)]) == 1
+    out = capsys.readouterr().out
+    assert "refused   wake-cycle-3-7" in out
+    assert "RuntimeError: boom" in out
+    assert out.count("ready") == len(load()) - 1
+
+
 def test_an_unknown_scene_id_is_an_error(estate, capsys):
     assert main(["report", "no-such-scene", "--sources", str(estate)]) == 1
     assert "no such scene" in capsys.readouterr().err
