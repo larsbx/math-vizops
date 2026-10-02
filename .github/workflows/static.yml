@@ -42,6 +42,12 @@ jobs:
           path: mandelbrot-bulbs-and-ford-circles-research
           token: ${{ secrets.ESTATE_TOKEN || github.token }}
           persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: larsbx/finite-math-kernels
+          path: finite-math-kernels
+          token: ${{ secrets.ESTATE_TOKEN || github.token }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -49,9 +55,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libpango1.0-dev ffmpeg xvfb xauth libgl1-mesa-dri libegl1 fonts-dejavu-core
-      - name: Install tested ManimGL runtime
+      - name: Install conformance dependencies
         working-directory: math-vizops
-        run: pip install -e '.[test]' manimgl==1.7.2
+        run: pip install -e '.[test]'
       - name: Verify sources and conformance
         working-directory: math-vizops
         env:
@@ -60,6 +66,8 @@ jobs:
           python -m vizops --check
           python -m vizops --sources ..
           VIZOPS_SOURCES=.. pytest -q
+      - name: Install tested ManimGL runtime
+        run: pip install manimgl==1.7.2
       - name: Render, verify, and embed all registered scenes
         working-directory: math-vizops
         run: xvfb-run -a python -m vizops gallery --sources .. --quality medium --out dist --report publication-report.json
