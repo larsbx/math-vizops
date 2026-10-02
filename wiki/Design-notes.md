@@ -8,7 +8,7 @@ to keep, and where:
 
 ## P1 — derive from the source, never re-derive
 
-Adapters transcribe. The vocabulary on a frame is the artifact's own. The
+Adapters transcribe. Module-backed scenes call the owning exact module rather than reimplementing it. The vocabulary on a frame is the source's own. The
 status label a frame shows is the label `proof_records/generate_ledgers.py`
 wrote — derived upstream from a record's kind, its override tag and the
 completeness of its closure — not a second derivation here.
@@ -74,6 +74,7 @@ class is refused rather than given a generated hue.
 | `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
 | `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
 | `vizops/wake/build.py` | The wake page: exact angle data from `kernel/bulbford/wake.py`, drawn here. |
+| `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 
 <!-- END generated module table -->
