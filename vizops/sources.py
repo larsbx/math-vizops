@@ -162,7 +162,7 @@ def module(checkout: Path, path: str, *, raw: bytes | None = None) -> ModuleType
     loaded = importlib.util.module_from_spec(spec)
     sys.modules[name] = loaded  # dataclasses resolve their annotations through here
     try:
-        code = compile(raw, str(source), "exec")
+        code = compile(raw, str(source), "exec", dont_inherit=True)
         exec(code, loaded.__dict__)
     except Exception as err:
         sys.modules.pop(name, None)

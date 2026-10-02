@@ -102,3 +102,23 @@ def test_module_loading_does_not_swallow_process_control(tmp_path):
 def test_a_malformed_manifest_is_refused(tmp_path, text, expected):
     with pytest.raises(SourceError, match=expected.replace("(", r"\(").replace(")", r"\)")):
         load(write(tmp_path, text))
+
+
+@pytest.mark.parametrize("supplied_bytes", [False, True])
+@pytest.mark.parametrize("postponed", [False, True])
+def test_upstream_module_controls_its_own_annotation_semantics(tmp_path, supplied_bytes, postponed):
+    checkout = tmp_path / "annotation_repo"
+    checkout.mkdir()
+    prefix = "from __future__ import annotations\n" if postponed else ""
+    assertion = ('assert f.__annotations__["x"] == "A"\n' if postponed
+                 else 'assert f.__annotations__["x"] is A\n')
+    raw = (prefix + "class A: pass\ndef f(x: A): pass\n" + assertion).encode()
+    path = checkout / "annotations.py"
+    # Supplied bytes must govern execution even when on-disk code differs.
+    path.write_bytes(b"raise RuntimeError('must use supplied bytes')\n" if supplied_bytes else raw)
+    loaded = module(checkout, "annotations.py", raw=raw if supplied_bytes else None)
+    annotation = loaded.f.__annotations__["x"]
+    if postponed:
+        assert annotation == "A"
+    else:
+        assert annotation is loaded.A
