@@ -6,6 +6,7 @@ stand-in with the same three names; the real one, and the committed still, are
 held to each other in `test_estate.py`.
 """
 
+import hashlib
 import json
 
 import pytest
@@ -72,6 +73,25 @@ def test_the_manim_payload_is_the_same_upstream_3_7_specimen(tmp_path):
     assert drawn.provenance.repo == SCENE.repo
     assert -0.607 < drawn.root_re < -0.606
     assert 0.412 < drawn.root_im < 0.413
+
+
+def test_the_manim_payload_executes_the_same_bytes_it_stamps(tmp_path, monkeypatch):
+    root = estate(tmp_path)
+    path = root / SCENE.checkout / SCENE.path
+    original = path.read_bytes()
+    original_read = type(SCENE).read
+
+    def read_then_change(self, source_root):
+        raw, digest = original_read(self, source_root)
+        if self.id == SCENE.id:
+            path.write_text("raise RuntimeError('newer checkout bytes')\n", encoding="utf-8")
+        return raw, digest
+
+    monkeypatch.setattr(type(SCENE), "read", read_then_change)
+    drawn = scene_figure(SCENE, root)
+
+    assert drawn.characteristic == (41, 42)
+    assert drawn.provenance.digest == hashlib.sha256(original).hexdigest()
 
 
 def test_the_page_embeds_every_reduced_angle_with_its_stamp(tmp_path):
