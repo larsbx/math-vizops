@@ -5,7 +5,7 @@ import pytest
 
 from vizops.adapters import ADAPTERS
 from vizops.bridge import SPECIAL_ADAPTERS
-from vizops.sources import MANIFEST, Scene, SourceError, by_id, load
+from vizops.sources import MANIFEST, Scene, SourceError, by_id, load, module
 
 MANIFEST_HEAD = 'format = "vizops sources 1"\n'
 ENTRY = """
@@ -60,6 +60,33 @@ def test_bytes_come_back_with_their_digest(tmp_path):
     raw, digest = scene.read(tmp_path)
     assert raw == b"{}"
     assert digest == "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+
+
+@pytest.mark.parametrize(
+    "source,error",
+    [
+        ("def broken(:\n", "SyntaxError"),
+        ("import definitely_missing_vizops_dependency\n", "ModuleNotFoundError"),
+        ("raise RuntimeError('boom')\n", "RuntimeError"),
+    ],
+)
+def test_module_execution_failures_are_refusals(tmp_path, source, error):
+    checkout = tmp_path / "repo"
+    path = checkout / "wake.py"
+    checkout.mkdir()
+    path.write_text(source, encoding="utf-8")
+    with pytest.raises(SourceError, match=error):
+        module(checkout, "wake.py")
+
+
+def test_module_loading_does_not_swallow_process_control(tmp_path):
+    checkout = tmp_path / "repo"
+    path = checkout / "wake.py"
+    checkout.mkdir()
+    path.write_text("raise SystemExit(7)\n", encoding="utf-8")
+    with pytest.raises(SystemExit) as stopped:
+        module(checkout, "wake.py")
+    assert stopped.value.code == 7
 
 
 @pytest.mark.parametrize(

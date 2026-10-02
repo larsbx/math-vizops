@@ -138,19 +138,37 @@ def pages(manifest: Path = MANIFEST) -> tuple[Page, ...]:
     return tuple(Page(**{**entry, "also": tuple(entry.get("also", ()))}) for entry in data.get("page", []))
 
 
-def module(checkout: Path, path: str) -> ModuleType:
+def module(checkout: Path, path: str, *, raw: bytes | None = None) -> ModuleType:
     """A Python file from a sibling checkout, loaded where it lives.
 
-    Borrowing upstream's own code is how a page answers an exact question
-    without a second implementation here to disagree with it.
+    When raw is supplied, those exact bytes are compiled and executed. This
+    lets a caller stamp the digest of the bytes that actually supplied its
+    data, instead of reading once for provenance and reopening the path for
+    execution. Module-execution failures are refusals; process-control
+    exceptions such as KeyboardInterrupt and SystemExit still pass through.
     """
     source = Path(checkout) / path
-    if not source.is_file():
-        raise SourceError(f"no {path} in {checkout}")
-    spec = importlib.util.spec_from_file_location(f"vizops_upstream.{Path(checkout).name}.{source.stem}", source)
+    if raw is None:
+        if not source.is_file():
+            raise SourceError(f"no {path} in {checkout}")
+        raw = source.read_bytes()
+    if not raw:
+        raise SourceError(f"{path} in {checkout} is empty")
+
+    name = f"vizops_upstream.{Path(checkout).name}.{source.stem}"
+    spec = importlib.util.spec_from_file_location(name, source)
+    if spec is None:
+        raise SourceError(f"could not create a module spec for {source}")
     loaded = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = loaded  # dataclasses resolve their annotations through here
-    spec.loader.exec_module(loaded)
+    sys.modules[name] = loaded  # dataclasses resolve their annotations through here
+    try:
+        code = compile(raw, str(source), "exec")
+        exec(code, loaded.__dict__)
+    except Exception as err:
+        sys.modules.pop(name, None)
+        raise SourceError(
+            f"{path} in {checkout} could not be loaded: {type(err).__name__}: {err}"
+        ) from err
     return loaded
 
 

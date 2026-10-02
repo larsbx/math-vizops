@@ -49,6 +49,9 @@ from vizops.wake.scene import WakeCycleFigure
 BOX = (2.8, 0.62)  # the most a node box is allowed to take; it shrinks to fit
 BADGE_FITS = 0.44  # below this box height the badge is dropped rather than overlapped
 TITLE, HEADER, LABEL, SMALL = 30, 20, 16, 13
+WAKE_FOOTER_CEILING = -3.10  # reserve the bottom band for provenance + caveat
+WAKE_LANDING_NOTE_Y = -2.68
+WAKE_COORDINATE_Y = -2.94
 
 
 class FigureScene(Scene):
@@ -140,6 +143,7 @@ class WakeCycleToMandelbrot(Scene):
             for i in range(figure.q)
         ))
         self.play(ShowCreation(orbit_wires, lag_ratio=0.08), run_time=1.8)
+        self.bring_to_front(*orbit_boxes)
         self.add(
             Text(f"×2 mod {figure.denominator}", font_size=SMALL)
             .set_color(palette.MUTED).move_to([0, 0.9, 0])
@@ -169,9 +173,9 @@ class WakeCycleToMandelbrot(Scene):
         ).set_color(characteristic).move_to([0, -1.72, 0])
         self.play(FadeIn(VGroup(angular_title, *angular_boxes, pair), lag_ratio=0.06), run_time=1.5)
 
-        left = wake_box(f"θ₋  {figure.theta_minus}/{figure.denominator}", [-2.8, -2.35, 0], characteristic)
-        right = wake_box(f"θ₊  {figure.theta_plus}/{figure.denominator}", [2.8, -2.35, 0], characteristic)
-        root = wake_box(f"{figure.p}/{figure.q} bulb root", [0, -2.65, 0], imported, width=1.65)
+        left = wake_box(f"θ₋  {figure.theta_minus}/{figure.denominator}", [-2.8, -2.12, 0], characteristic)
+        right = wake_box(f"θ₊  {figure.theta_plus}/{figure.denominator}", [2.8, -2.12, 0], characteristic)
+        root = wake_box(f"{figure.p}/{figure.q} bulb root", [0, -2.32, 0], imported, width=1.65)
         rays = VGroup(
             DashedLine(left.get_center(), root.get_center()).set_stroke(characteristic, 1.8),
             DashedLine(right.get_center(), root.get_center()).set_stroke(characteristic, 1.8),
@@ -179,13 +183,14 @@ class WakeCycleToMandelbrot(Scene):
         landing = Text(
             "[DH/Mil00] imported landing · ray paths schematic",
             font_size=SMALL,
-        ).set_color(imported).move_to([0, -3.15, 0])
+        ).set_color(imported).move_to([0, WAKE_LANDING_NOTE_Y, 0])
         coordinate = Text(
             f"display aid: c ≈ {figure.root_re:+.6f}{figure.root_im:+.6f}i",
             font_size=SMALL,
-        ).set_color(palette.MUTED).move_to([0, -3.42, 0])
+        ).set_color(palette.MUTED).move_to([0, WAKE_COORDINATE_Y, 0])
         self.play(FadeIn(VGroup(left, right, root), lag_ratio=0.12), run_time=1.0)
         self.play(ShowCreation(rays, lag_ratio=0.15), run_time=1.2)
+        self.bring_to_front(left, right, root)
         self.play(FadeIn(VGroup(landing, coordinate), lag_ratio=0.1), run_time=0.8)
         self.wait(2)
 

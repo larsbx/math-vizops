@@ -105,11 +105,13 @@ class Scene:
         self.added: list = []
         self.played: list = []
         self.waited: list = []
+        self.fronted: list = []
 
     def add(self, *mobjects):
         self.added.extend(mobjects)
 
     def bring_to_front(self, *mobjects):
+        self.fronted.extend(mobjects)
         self.added.extend(mobjects)
 
     def play(self, *animations, **kwargs):
