@@ -6,6 +6,7 @@
     python -m vizops render [ID ...]    render with manimgl
     python -m vizops still [ID ...]     the last frame, into wiki/images/
     python -m vizops page [ID ...]      self-contained HTML pages, into out/
+    python -m vizops site              complete generated-only deployment bundle
     python -m vizops wiki --publish     mirror wiki/ to the GitHub wiki
 
 The report needs no renderer, which is the point: it reads every artifact,
@@ -23,13 +24,14 @@ from __future__ import annotations
 import argparse
 import importlib
 import sys
+import subprocess
 from pathlib import Path
 from typing import Sequence
 
 from . import surfaces, wiki
 from .bridge import DEFAULT_OUT, QUALITIES, REFUSALS, figure, render, renderer, root, still
 from .outcome import Outcome, Refused, worst
-from .sources import MANIFEST, Page, Scene, load, pages
+from .sources import MANIFEST, Page, Scene, SourceError, load, pages
 from .wake.scene import WakeCycleFigure
 
 STILLS = surfaces.WIKI / surfaces.IMAGES
@@ -94,7 +96,7 @@ def publish(remote: str, dry_run: bool) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="vizops", description=__doc__.splitlines()[0])
-    parser.add_argument("command", nargs="?", default="report", choices=("report", "render", "still", "page", "wiki"))
+    parser.add_argument("command", nargs="?", default="report", choices=("report", "render", "still", "page", "site", "wiki"))
     parser.add_argument("ids", nargs="*", help="scene or page ids; all of them by default")
     parser.add_argument("--sources", type=Path, default=None, help="directory holding the sibling checkouts")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="where manimgl and `page` write")
@@ -116,6 +118,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not args.publish:
             parser.error("`wiki` needs --publish (or use --check / --write for the pages themselves)")
         return publish(args.remote, args.dry_run)
+
+    if args.command == "site":
+        from .site import build
+        if args.ids or args.dataset:
+            parser.error("site builds the complete registry from upstream emitters")
+        try:
+            return build(root(args.sources), args.out, quality=args.quality)
+        except (SourceError, OSError, subprocess.CalledProcessError) as error:
+            print(f"refused site: {error}", file=sys.stderr)
+            return 1
 
     targets = pages() if args.command == "page" else scenes
     chosen = [t for t in targets if not args.ids or t.id in args.ids]
