@@ -3,8 +3,9 @@
 Animated surfaces for this estate's research artifacts, drawn with
 [3b1b/manim](https://github.com/3b1b/manim) (`manimgl`).
 
-A scene here reads **one machine-readable artifact that another repository
-generates and checks** and draws what it says. It computes no status, closes
+A scene here reads **one source surface that another repository owns and
+checks** — normally a machine-readable artifact, and for the wake specimen the
+owning exact module itself — and draws what it says. It computes no status, closes
 no dependency graph, classifies no object, and translates no vocabulary. Every
 one of those questions is already answered where it was built; a second answer
 in a repository that draws pictures could only disagree with the first.
@@ -20,10 +21,11 @@ python -m vizops render c1-claim-graph
 <!-- BEGIN generated scene table (python -m vizops --write); do not edit between the markers -->
 <!-- Rendered by vizops/surfaces.py from vizops/sources.toml. -->
 
-| Scene | Draws | Source artifact | manim scene |
+| Scene | Draws | Source surface | manim scene |
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
 | `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
+| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`kernel/bulbford/wake.py`](https://github.com/larsbx/mandelbrot-bulbs-and-ford-circles-research/blob/main/kernel/bulbford/wake.py) in `larsbx/mandelbrot-bulbs-and-ford-circles-research` | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
 
