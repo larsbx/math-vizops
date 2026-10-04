@@ -264,22 +264,30 @@ to keep:
 `python -m vizops site --sources .. --out out/site --quality low` builds every
 registered HTML page (including the atlas through its upstream Pixi emitter),
 and a canonical still and video for every registered scene. Use a fresh output
-directory. Inputs must be clean Git checkouts. The index embeds verified media,
-links the interactive pages, and repeats the source notes and non-authorizing
+directory. Inputs must be clean Git checkouts; upstream builders and renderers
+read isolated exports of those committed bytes. Movies are converted to
+H.264/yuv420p MP4, checked with FFprobe for a positive finite duration and valid
+dimensions, and paired with first-frame PNG posters. Missing FFmpeg/FFprobe or
+a timeout is inconclusive; invalid media or a failed conversion refuses. The
+index embeds verified media, links the interactive pages, and repeats the source notes and non-authorizing
 caveat. No source checkout, hand-drawn substitute, or partial renderer output
 is published.
 
 `manifest.json` records each input revision and a SHA-256 digest of its tracked
-file/digest map, the registry digest, each build verdict, and each generated
-file digest. `manifest.sha256` binds the deterministic JSON bytes. Timestamps
-and temporary paths are omitted; video bytes can still vary between renderer
-versions. Inputs are checked again after building, so a changed checkout blocks
+file/digest map, the registry digest, renderer version and quality, each build
+verdict, and each generated file digest. Video records retain the raw-render
+digest, playback metadata, and video/poster digests. `manifest.sha256` binds the
+deterministic JSON bytes. Timestamps and temporary paths are omitted; video
+bytes can still vary between renderer versions. Original inputs and exported
+source files are checked again after building, so a changed checkout blocks
 publication. Digests attest bytes, never mathematical correctness.
 
 Pages now builds under Xvfb with Mesa software GL, Pango, FFmpeg, TeX, ManimGL
 and Pixi. A private sibling needs `ESTATE_TOKEN` read access; absent sources
 refuse. Exit 1 (`refused`) or 2 (`inconclusive`) blocks the Pages upload and
 deployment. Build evidence is retained separately for diagnosis. PRs run the
-unit and surface gates without sibling secrets or deployment permissions;
-complete rendering runs on main or manual dispatch. Wiki mirroring remains
+unit and surface gates, followed by real software-GL still/video/poster checks
+through the site builder against an explicit scene-only test registry. The
+reviewable fixture artifact is labeled as validation, without sibling secrets
+or deployment permissions. Complete upstream rendering runs on main or manual dispatch. Wiki mirroring remains
 in `wiki.yml`.

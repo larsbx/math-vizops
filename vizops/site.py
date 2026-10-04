@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import hashlib
 import html
+import importlib.metadata
+import io
 import json
 import re
 import shutil
 import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
 
-from . import bridge
+from . import bridge, media
 from .figure import CAVEAT
-from .outcome import Rendered, Refused, worst
+from .outcome import Inconclusive, Rendered, Refused, worst
 from .sources import MANIFEST, load, pages, SourceError
 
 
@@ -53,6 +56,47 @@ def checked_output(outcome: Rendered, scratch: Path) -> Path:
     return path
 
 
+def frozen_digest(checkout: Path, filenames: tuple[str, ...] | None = None) -> str:
+    names = filenames if filenames is not None else tuple(
+        p.relative_to(checkout).as_posix() for p in checkout.rglob('*') if p.is_file() or p.is_symlink())
+    files = {}
+    for name in names:
+        path = checkout / name
+        if path.is_symlink() or not path.is_file():
+            raise SourceError('missing file or symlink in frozen inputs')
+        files[name] = digest(path)
+    return hashlib.sha256(canonical(files)).hexdigest()
+
+
+def freeze(checkout: Path, destination: Path, expected: dict) -> tuple[str, ...]:
+    """Export the bound commit, refusing archive transformations or unsafe members."""
+    archive = subprocess.check_output([
+        'git', '-C', str(checkout), 'archive', '--format=tar', expected['revision'],
+    ])
+    destination.mkdir(parents=True)
+    filenames = []
+    with tarfile.open(fileobj=io.BytesIO(archive)) as entries:
+        for member in entries:
+            path = Path(member.name)
+            if path.is_absolute() or '..' in path.parts or not (member.isfile() or member.isdir()):
+                raise SourceError(f'unsafe source archive member: {member.name}')
+            output = destination / path
+            if member.isdir():
+                output.mkdir(parents=True, exist_ok=True)
+            else:
+                output.parent.mkdir(parents=True, exist_ok=True)
+                stream = entries.extractfile(member)
+                if stream is None:
+                    raise SourceError(f'unreadable source archive member: {member.name}')
+                with stream, output.open('wb') as into:
+                    shutil.copyfileobj(stream, into)
+                output.chmod(member.mode & 0o777)
+                filenames.append(member.name)
+    if frozen_digest(destination) != expected['tree_sha256']:
+        raise SourceError('exported source bytes disagree with the bound input tree')
+    return tuple(filenames)
+
+
 def build(sources: Path, out: Path, *, quality: str = "low") -> int:
     """All declared pages and both canonical media for every scene; no partial deployment."""
     from .__main__ import build_page
@@ -69,38 +113,69 @@ def build(sources: Path, out: Path, *, quality: str = "low") -> int:
     bound = {"math-vizops": snapshot(owner), **{r: snapshot(c) for r, c in checkouts.items()}}
     manifest = {"format": "vizops site 1", "caveat": CAVEAT,
                 "registry_sha256": digest(MANIFEST), "inputs": bound, "outcomes": [], "files": {}}
+    try:
+        renderer_version = importlib.metadata.version('manimgl')
+    except importlib.metadata.PackageNotFoundError:
+        renderer_version = 'unavailable'
+    manifest['build'] = {'renderer': 'manimgl', 'renderer_version': renderer_version, 'quality': quality}
     outcomes, fragments = [], [f"<!doctype html><html lang='en'><meta charset='utf-8'><title>Math vizops</title><h1>Math vizops</h1><p>{html.escape(CAVEAT)}</p>"]
     out.mkdir(parents=True)
     with tempfile.TemporaryDirectory(prefix="vizops-site-") as directory:
         scratch = Path(directory)
+        frozen = scratch / 'sources'
+        frozen_files = {repo: freeze(checkout, frozen / repo.split('/')[-1], bound[repo])
+                        for repo, checkout in checkouts.items()}
         for kind, target in targets:
             fragments.append(f"<section><h2>{html.escape(target.title)}</h2><p>{html.escape(target.note)}</p>")
             for repo, path in (target.files() if kind == 'page' else ((target.repo, target.path),)):
-                fragments.append(f"<p>{html.escape(repo)} @ {bound[repo]['revision']} · {html.escape(path)} · sha256:{digest(checkouts[repo] / path)}</p>")
+                fragments.append(f"<p>{html.escape(repo)} @ {bound[repo]['revision']} · {html.escape(path)} · sha256:{digest(frozen / repo.split('/')[-1] / path)}</p>")
             for mode in (("page",) if kind == 'page' else ("still", "video")):
                 work = scratch / target.id / mode
                 work.mkdir(parents=True)
-                outcome = (build_page(target, sources, dataset=None, out=work) if mode == 'page'
-                           else bridge.render(target, sources, out=work, quality=quality, still=mode == 'still'))
+                outcome = (build_page(target, frozen, dataset=None, out=work) if mode == 'page'
+                           else bridge.render(target, frozen, out=work, quality=quality, still=mode == 'still'))
                 if isinstance(outcome, Rendered):
                     try:
                         artifact = checked_output(outcome, work)
                         if artifact.suffix.lower() not in ({'.html'} if mode == 'page' else bridge.WANTED[mode == 'still']):
                             raise SourceError("unexpected output format")
+                        extra = {}
+                        if mode == 'video':
+                            normalized = work / 'browser'
+                            normalized.mkdir()
+                            video, poster = normalized / 'video.mp4', normalized / 'poster.png'
+                            playback = media.prepare(artifact, video, poster)
+                            if digest(artifact) != outcome.digest:
+                                raise SourceError('rendered input changed during media verification')
+                            artifact = checked_output(Rendered(target.id, str(video), digest(video)), work)
+                            checked_output(Rendered(target.id, str(poster), digest(poster)), work)
+                            extra = {'render_sha256': outcome.digest, 'media': playback,
+                                     'poster': target.id + '-poster.png', 'poster_sha256': digest(poster)}
                         filename = target.id + ('-' + mode if mode != 'page' else '') + artifact.suffix.lower()
+                        expected_digest = digest(artifact) if mode == 'video' else outcome.digest
                         shutil.copyfile(artifact, out / filename)
-                        if digest(out / filename) != outcome.digest:
+                        if digest(out / filename) != expected_digest:
                             (out / filename).unlink()
                             raise SourceError("artifact changed while copying to publication")
-                        manifest['files'][filename] = outcome.digest
+                        if mode == 'video':
+                            shutil.copyfile(poster, out / extra['poster'])
+                            if digest(out / extra['poster']) != extra['poster_sha256']:
+                                (out / filename).unlink()
+                                (out / extra['poster']).unlink()
+                                raise SourceError('poster changed while copying to publication')
+                            manifest['files'][extra['poster']] = extra['poster_sha256']
+                        manifest['files'][filename] = expected_digest
                         if mode == 'page':
                             fragments.append(f"<a href='{filename}'>Interactive page</a>")
-                        elif mode == 'still' or artifact.suffix.lower() == '.gif':
+                        elif mode == 'still':
                             fragments.append(f"<img src='{filename}' alt='{html.escape(target.title, quote=True)}' style='max-width:100%'>")
                         else:
-                            fragments.append(f"<video controls preload='metadata' src='{filename}' style='max-width:100%'></video>")
-                        record = {"id": target.id, "mode": mode, "verdict": outcome.verdict, "output": filename, "sha256": outcome.digest}
-                    except SourceError as error:
+                            fragments.append(f"<video controls playsinline preload='metadata' poster='{extra['poster']}' src='{filename}' style='max-width:100%'></video><a href='{filename}' download>Download MP4</a>")
+                        record = {"id": target.id, "mode": mode, "verdict": outcome.verdict, "output": filename, "sha256": expected_digest, **extra}
+                        outcome = Rendered(target.id, str(out / filename), expected_digest)
+                    except (media.MediaUnavailable, subprocess.TimeoutExpired) as error:
+                        outcome = Inconclusive(target.id, str(error))
+                    except (SourceError, OSError, subprocess.CalledProcessError, ValueError) as error:
                         outcome = Refused(target.id, str(error))
                 if not isinstance(outcome, Rendered):
                     record = {"id": target.id, "mode": mode, "verdict": outcome.verdict, "reason": outcome.reason}
@@ -112,6 +187,9 @@ def build(sources: Path, out: Path, *, quality: str = "low") -> int:
         after = {"math-vizops": snapshot(owner), **{r: snapshot(c) for r, c in checkouts.items()}}
         if bound != after:
             raise SourceError("inputs changed during site build; publication refused")
+        for repo in repos:
+            if frozen_digest(frozen / repo.split('/')[-1], frozen_files[repo]) != bound[repo]['tree_sha256']:
+                raise SourceError('frozen inputs changed during site build; publication refused')
     (out / 'index.html').write_text('\n'.join(fragments) + '</html>\n', encoding='utf-8')
     manifest['files']['index.html'] = digest(out / 'index.html')
     manifest['exit_code'] = worst(tuple(outcomes))
