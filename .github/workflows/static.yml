@@ -25,6 +25,10 @@ jobs:
           python-version: '3.11'
       - run: pip install -e '.[test]'
         working-directory: math-vizops
+      - name: Install browser-media verification tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
       - run: python -m vizops --check && pytest -q
         working-directory: math-vizops
       - uses: actions/checkout@v4
@@ -66,11 +70,23 @@ jobs:
         with:
           run-install: false
       - name: Install headless renderer
-        if: github.event_name != 'pull_request'
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb xauth libgl1-mesa-dri libegl1 libpango1.0-dev ffmpeg fonts-dejavu-core fonts-noto-core
           pip install -e './math-vizops[render]'
+      - name: Render fixture scenes through the site builder without sibling credentials
+        if: github.event_name == 'pull_request'
+        working-directory: math-vizops
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a python tests/smoke_site_render.py --out out/fixture-site
+      - name: Keep reviewable fixture rendering evidence
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixture-rendering-${{ github.run_attempt }}
+          path: math-vizops/out/fixture-site
+          if-no-files-found: error
       - name: Build all pages and canonical media with software GL
         if: github.event_name != 'pull_request'
         working-directory: math-vizops

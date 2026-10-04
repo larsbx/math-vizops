@@ -16,7 +16,8 @@ test = ["pytest"]
 # artifact, refusing a malformed one, laying the figure out -- runs without a
 # renderer, and a run with no renderer reports `inconclusive` rather than
 # passing. See README, "Fail-closed has a direction".
-render = ["manimgl==1.7.2"]
+# ManimGL 1.7.2 imports pkg_resources at runtime, even without setuptools build work.
+render = ["manimgl==1.7.2", "setuptools==80.9.0"]
 
 [project.scripts]
 vizops = "vizops.__main__:main"

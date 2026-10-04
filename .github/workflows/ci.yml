@@ -19,6 +19,8 @@ jobs:
       - run: pytest -q
 
   estate:
+    # Match the Pages pipeline: PR checks do not receive sibling credentials.
+    if: github.event_name != 'pull_request'
     # The scenes against the real artifacts. This is what catches an upstream
     # generator changing shape -- a new provenance class, a renamed taxonomy,
     # an edge type that was never declared -- so the checkouts are required
@@ -34,6 +36,7 @@ jobs:
       # github.token is deliberately not used as a fallback: it cannot read a
       # private sibling and turns an otherwise useful estate run into a 404.
       VIZOPS_REQUIRE_SOURCES: ${{ secrets.ESTATE_TOKEN != '' && '1' || '0' }}
+      VIZOPS_HAVE_ESTATE_TOKEN: ${{ secrets.ESTATE_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,13 +52,13 @@ jobs:
           path: pisot-substitution-conjecture-research
           token: ${{ secrets.ESTATE_TOKEN || github.token }}
       - uses: actions/checkout@v4
-        if: ${{ secrets.ESTATE_TOKEN != '' }}
+        if: env.VIZOPS_HAVE_ESTATE_TOKEN == 'true'
         with:
           repository: larsbx/mandelbrot-bulbs-and-ford-circles-research
           path: mandelbrot-bulbs-and-ford-circles-research
           token: ${{ secrets.ESTATE_TOKEN }}
       - uses: actions/checkout@v4
-        if: ${{ secrets.ESTATE_TOKEN != '' }}
+        if: env.VIZOPS_HAVE_ESTATE_TOKEN == 'true'
         with:
           repository: larsbx/finite-math-kernels
           path: finite-math-kernels
