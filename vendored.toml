@@ -4,7 +4,7 @@
 [[package]]
 name = "rational_dynamics_py"
 repository = "larsbx/finite-math-kernels"
-commit = "562e408b0035c0be88d44ef420eedda5eec064b2"
+commit = "9d27bc4508844e72ffc61acb8ba172f7346707d8"
 root = "vendor/python"
 
 [package.files]
@@ -26,7 +26,7 @@ root = "vendor/python"
 [[package]]
 name = "vendoring"
 repository = "larsbx/finite-math-kernels"
-commit = "562e408b0035c0be88d44ef420eedda5eec064b2"
+commit = "9d27bc4508844e72ffc61acb8ba172f7346707d8"
 root = "vendor/python"
 
 [package.files]
