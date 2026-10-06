@@ -10,7 +10,7 @@ Each scene is one entry in [`vizops/sources.toml`](https://github.com/larsbx/mat
 | Scene | Draws | Source surface | manim scene |
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
-| `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
+| `psc-object-catalogue` | PSC mathematical-object catalogue | [`docs/catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
 | `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/dc9a569bd251f55da8b0d9baddb9b75cde23fd09/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `dc9a569bd251`) | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
@@ -34,7 +34,7 @@ _No still published yet._ Run `python -m vizops still c1-claim-graph` and commit
 
 ### PSC mathematical-object catalogue
 
-`ObjectCatalogue` — drawn from [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research`.
+`ObjectCatalogue` — drawn from [`docs/catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research`.
 
 _No still published yet._ Run `python -m vizops still psc-object-catalogue` and commit `wiki/images/psc-object-catalogue.png`.
 
