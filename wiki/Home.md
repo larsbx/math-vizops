@@ -24,8 +24,8 @@ python -m vizops render c1-claim-graph
 | Scene | Draws | Source surface | manim scene |
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
-| `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
-| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/65038cf1b6e8b038f1efc85e802d08b8c22fe4e1/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `65038cf1b6e8`) | `WakeCycleToMandelbrot` |
+| `psc-object-catalogue` | PSC mathematical-object catalogue | [`docs/catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
+| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/d61bcf82d621b192a918ae90a031413bb2d30875/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `d61bcf82d621`) | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
 
