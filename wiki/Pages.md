@@ -28,7 +28,7 @@ republish it when its sources move.
 
 ### Wake cycle to Mandelbrot bulb root
 
-`python -m vizops page wake-to-mandelbrot` — reads [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/bba47b61b1349d2029aed359aeb6c48fbab68403/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `bba47b61b134`).
+`python -m vizops page wake-to-mandelbrot` — reads [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/d61bcf82d621b192a918ae90a031413bb2d30875/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `d61bcf82d621`).
 
 ![Wake cycle to Mandelbrot bulb root](images/wake-to-mandelbrot.png)
 
