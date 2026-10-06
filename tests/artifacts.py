@@ -9,6 +9,7 @@ the thing they name, rather than that nothing has gone wrong yet.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -113,6 +114,8 @@ def estate(root: Path, *, graph_bytes: bytes | None = None, catalogue: str | Non
     from vizops.sources import load
 
     for scene in load():
+        if scene.vendored:
+            continue  # read from vendor/, pinned in vendored.toml; never a fixture's to write
         artifact = scene.artifact(root)
         artifact.parent.mkdir(parents=True, exist_ok=True)
         if scene.adapter == "typed_graph":
@@ -125,3 +128,30 @@ def estate(root: Path, *, graph_bytes: bytes | None = None, catalogue: str | Non
             raise AssertionError(f"test fixture has no source for adapter {scene.adapter!r}")
         artifact.write_bytes(payload)
     return root
+
+
+VENDOR_ROOT = Path(__file__).resolve().parents[1]
+
+
+def drifted_vendor(tmp_path: Path, monkeypatch, change: bytes = b"\n# a local patch\n",
+                   file: str = "doubling.py") -> Path:
+    """Make `import rational_dynamics_py` find a copy of the vendored package
+    under `tmp_path`, with `change` appended to its `file`.
+
+    `sources.vendored_package` checks the files of the package Python imported,
+    where it was imported from, so standing a module object that points at the
+    copy in `sys.modules` is exactly a drifted (or shadowing) install. Tests
+    break the copy, never the repository's own vendored files.
+    """
+    import sys
+    import types
+
+    copy = tmp_path / "site" / "rational_dynamics_py"
+    shutil.copytree(VENDOR_ROOT / "vendor" / "python" / "rational_dynamics_py", copy,
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    target = copy / file
+    target.write_bytes(target.read_bytes() + change)
+    stand_in = types.ModuleType("rational_dynamics_py")
+    stand_in.__file__ = str(copy / "__init__.py")
+    monkeypatch.setitem(sys.modules, "rational_dynamics_py", stand_in)
+    return target

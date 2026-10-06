@@ -23,7 +23,12 @@ render = ["manimgl==1.7.2", "setuptools==80.9.0"]
 vizops = "vizops.__main__:main"
 
 [tool.setuptools]
-packages = ["vizops", "vizops.atlas", "vizops.wake", "vizops.bulbs"]
+# `rational_dynamics_py` is finite-math-kernels' exact doubling-map package,
+# vendored byte-for-byte under vendor/python/ and pinned in vendored.toml. It is
+# installed under its own name from there, so this mapping is the one place
+# that makes it importable; nothing edits sys.path.
+packages = ["vizops", "vizops.atlas", "vizops.wake", "vizops.bulbs", "rational_dynamics_py"]
+package-dir = {"rational_dynamics_py" = "vendor/python/rational_dynamics_py"}
 
 [tool.setuptools.package-data]
 vizops = ["*.toml"]

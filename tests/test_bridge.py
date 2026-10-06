@@ -130,16 +130,16 @@ def test_a_malformed_source_is_refused_before_a_renderer_starts(tmp_path, scene,
     assert not (tmp_path / "called").exists()
 
 
-def test_a_broken_wake_module_is_refused_before_a_renderer_starts(tmp_path, monkeypatch):
-    broken = artifacts.estate(tmp_path / "estate")
+def test_a_drifted_wake_module_is_refused_before_a_renderer_starts(tmp_path, monkeypatch):
+    estate = artifacts.estate(tmp_path / "estate")
+    artifacts.drifted_vendor(tmp_path, monkeypatch, b"def broken(:\n")
     wake_scene = next(s for s in load() if s.id == "wake-cycle-3-7")
-    wake_scene.artifact(broken).write_text("def broken(:\n", encoding="utf-8")
     monkeypatch.setattr("vizops.bridge.renderer", lambda: str(stand_in(tmp_path, "pass")))
 
-    outcome = render(wake_scene, broken, out=tmp_path / "out")
+    outcome = render(wake_scene, estate, out=tmp_path / "out")
 
     assert isinstance(outcome, Refused)
-    assert "SyntaxError" in outcome.reason
+    assert "differs from" in outcome.reason
     assert not (tmp_path / "called").exists()
 
 

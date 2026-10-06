@@ -28,11 +28,11 @@ republish it when its sources move.
 
 ### Wake cycle to Mandelbrot bulb root
 
-`python -m vizops page wake-to-mandelbrot` — reads [`kernel/bulbford/wake.py`](https://github.com/larsbx/mandelbrot-bulbs-and-ford-circles-research/blob/main/kernel/bulbford/wake.py) in `larsbx/mandelbrot-bulbs-and-ford-circles-research`.
+`python -m vizops page wake-to-mandelbrot` — reads [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/65038cf1b6e8b038f1efc85e802d08b8c22fe4e1/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `65038cf1b6e8`).
 
 ![Wake cycle to Mandelbrot bulb root](images/wake-to-mandelbrot.png)
 
-> Rotation words, doubling cycles and characteristic pairs are that module's; the raster, the root coordinate and the dashed rays are display aids. The landing relation is the imported [DH/Mil00].
+> Rotation words, doubling cycles and characteristic pairs are the vendored rational_dynamics_py's (ported from the bulbs repository's kernel/bulbford/wake.py); the raster, the root coordinate and the dashed rays are display aids. The landing relation is the imported [DH/Mil00].
 
 ### Bulbs & Ford Circles
 

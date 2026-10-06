@@ -1,16 +1,22 @@
-"""The wake page: exact angle data from `kernel/bulbford/wake.py`, drawn here.
+"""The wake page: exact angle data from the vendored `rational_dynamics_py`, drawn here.
 
     python -m vizops page wake-to-mandelbrot
 
 For every reduced p/q with q <= `QMAX`, the page shows the rotation word, the
 doubling cycle over 2^q - 1 and the characteristic pair (theta-, theta+). All of
-it is computed by the upstream module, loaded from the sibling checkout, and
-embedded in the page as integers over 2^q - 1; the page's script only looks it
-up. The Mandelbrot raster, the cardioid-root coordinate and the dashed rays are
-floating point or schematic, and the page says so.
+it is computed by finite-math-kernels' `rational_dynamics_py` (`mechanical_word`,
+`rotation_cycle`, `wake`), vendored byte-for-byte under vendor/python/ and
+pinned in vendored.toml, and embedded in the page as integers over 2^q - 1; the
+page's script only looks it up. That package's rotation functions are a port of
+mandelbrot-bulbs-and-ford-circles-research's `kernel/bulbford/wake.py`, which
+this page used to execute from the sibling checkout; the tabulated rows are
+byte-identical. The Mandelbrot raster, the cardioid-root coordinate and the
+dashed rays are floating point or schematic, and the page says so.
 
-The page is stamped with the digest of the module it read. It is a picture of
-finite arithmetic and an imported landing theorem, and it authorizes nothing.
+The package is reached only through `sources.vendored_package`, which checks
+every pinned file where Python imported it and refuses on any drift; the page
+is stamped with the digest of that whole pinned file set. It is a picture of finite
+arithmetic and an imported landing theorem, and it authorizes nothing.
 
 `STILL` is the committed 3/7 still for the wiki. It is drawn by hand, so
 `still_claims` reads the exact numbers it prints back out of it, for the estate
@@ -29,7 +35,7 @@ from typing import Any
 
 from ..figure import CAVEAT, Provenance
 from ..outcome import Outcome, Refused, Rendered
-from ..sources import Page, SourceError, module
+from ..sources import Page, SourceError
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "page.html"
 STILL = Path(__file__).resolve().parents[2] / "wiki" / "images" / "wake-cycle-3-7.svg"
@@ -37,13 +43,13 @@ STILL = Path(__file__).resolve().parents[2] / "wiki" / "images" / "wake-cycle-3-
 QMAX = 12
 
 
-def rows(wake: ModuleType, qmax: int = QMAX) -> list[dict[str, Any]]:
-    """Every reduced p/q up to `qmax`, as the upstream module answers it."""
+def rows(rd: ModuleType, qmax: int = QMAX) -> list[dict[str, Any]]:
+    """Every reduced p/q up to `qmax`, as the verified vendored package `rd` answers it."""
     def row(p: int, q: int) -> dict[str, Any]:
         den = 2 ** q - 1
-        lo, hi = wake.wake(p, q)
-        return {"p": p, "q": q, "den": den, "word": wake.mechanical(p, q, 0),
-                "cycle": [int(x * den) for x in wake.rotation_cycle(p, q)],
+        lo, hi = rd.wake(p, q)
+        return {"p": p, "q": q, "den": den, "word": rd.mechanical_word(p, q, 0),
+                "cycle": [int(x * den) for x in rd.rotation_cycle(p, q)],
                 "lo": int(lo * den), "hi": int(hi * den)}
     return [row(p, q) for q in range(2, qmax + 1) for p in range(1, q) if gcd(p, q) == 1]
 
@@ -60,21 +66,20 @@ def still_claims(svg: str) -> dict[str, Any]:
 
 def build(page: Page, sources: Path, *, dataset: Path | None = None,
           out: Path = Path("wake-to-mandelbrot.html")) -> Outcome:
-    """Load the module, tabulate, and write the page -- or say why not."""
+    """Check the vendored copy, tabulate, and write the page -- or say why not.
+
+    `sources` is not read: the module is vendored, not a sibling checkout.
+    """
     if dataset is not None:
         return Refused(page.id, "this page reads a module, not a dataset; drop --dataset")
-    checkout = Path(sources) / page.checkout
-    if not checkout.is_dir():
-        return Refused(page.id, f"no checkout of {page.repo} at {checkout}; pass --sources to say where the estate is")
     try:
-        wake = module(checkout, page.path)
-        table = rows(wake)
+        package = page.package()
+        table = rows(package.module)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
     except (AttributeError, TypeError, ValueError) as err:
         return Refused(page.id, f"{page.path} no longer answers as this page reads it: {err}")
-    provenance = Provenance(page.repo, page.path,
-                            hashlib.sha256((checkout / page.path).read_bytes()).hexdigest(), page.note)
+    provenance = Provenance(page.repo, page.path, package.digest, page.note)
     html = (TEMPLATE.read_text(encoding="utf-8")
             .replace("__STAMP__", f"{provenance.stamp} · {CAVEAT}")
             .replace("__QMAX__", str(QMAX))

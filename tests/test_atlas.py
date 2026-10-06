@@ -6,6 +6,7 @@ The exclusion oracle is upstream's and is not copied here, so these tests hand
 `test_estate.py` against the sibling checkout.
 """
 
+import importlib
 import json
 from fractions import Fraction
 from pathlib import Path
@@ -18,7 +19,11 @@ from vizops.atlas import trace
 from vizops.atlas.build import ORACLE
 from vizops.figure import CAVEAT
 from vizops.outcome import Inconclusive, Refused, Rendered
-from vizops.sources import SourceError, pages
+from vizops.sources import SourceError, pages, vendored_package
+
+#: The module, not the `build` function `vizops.atlas` exports under that name.
+atlas_build = importlib.import_module("vizops.atlas.build")
+ROOT = Path(__file__).resolve().parents[1]
 
 PAGE = next(p for p in pages() if p.id == "mandelbrot-atlas")
 STUB_ORACLE = '''
@@ -96,9 +101,22 @@ def test_the_third_ray_names_the_period_two_component():
     assert abs(centre + 1) < 1e-12
 
 
-@pytest.mark.parametrize("theta, period", [(Fraction(1, 7), 3), (Fraction(1, 3), 2), (Fraction(1, 2), None)])
-def test_period_under_doubling(theta, period):
-    assert trace.period_of(theta) == period
+@pytest.mark.parametrize("theta, kind", [
+    (Fraction(1, 7), (0, 3)), (Fraction(1, 3), (0, 2)),
+    (Fraction(1, 2), (1, 1)),               # preperiodic: an exact type, not "None"
+    (Fraction(1, 2 ** 33 - 1), (0, 33)),    # the old cap of 32 admitted 33 ...
+    (Fraction(1, 2 ** 34 - 1), (0, 34)),    # ... and answered None past it; there is no cap now
+    (Fraction(5, 24), (3, 2)),
+])
+def test_the_type_under_doubling_is_the_vendored_exact_one(theta, kind):
+    assert vendored_package(atlas_build.EXACT).module.exact_type(theta) == kind
+
+
+def test_root_rays_are_chosen_by_the_verified_vendored_package_and_no_local_copy():
+    package = vendored_package(atlas_build.EXACT)
+    assert Path(package.module.__file__).resolve().parent == ROOT / "vendor" / "python" / "rational_dynamics_py"
+    assert not hasattr(trace, "period_of")
+    assert "rational_dynamics_py" not in atlas_build.__dict__ and "exact_type" not in atlas_build.__dict__
 
 
 # --- the dataset, read fail-closed ----------------------------------------------
@@ -137,6 +155,8 @@ def test_a_dataset_renders_a_page_stamped_with_every_input_digest(estate, tmp_pa
     assert f"{PAGE.repo}/{PAGE.path} @ sha256:" in html
     assert f"{PAGE.repo}/{ORACLE} @ sha256:" in html
     assert f"dataset/{source.name} @ sha256:" in html
+    assert f"rational_dynamics_py (vendored at " in html
+    assert vendored_package(atlas_build.EXACT).digest[:12] in html
     embedded = json.loads(html.split("const DATA = ", 1)[1].split(";\n", 1)[0])
     assert {"misiurewicz", "components", "certificates"} <= set(embedded)
     assert embedded["misiurewicz"][0]["agrees"] is True
@@ -202,3 +222,16 @@ def test_the_cli_scores_the_atlas_like_a_render(estate, tmp_path, capsys):
     assert (tmp_path / "out" / f"{PAGE.id}.html").is_file()
     assert main(["page", PAGE.id, "--sources", str(tmp_path / "nothing")]) == 1
     assert "refused" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("file", ["__init__.py", "doubling.py"])
+def test_a_drifted_vendored_package_is_refused_and_nothing_is_written(estate, tmp_path, monkeypatch, file):
+    """Root rays are chosen by `exact_type`; a modified or shadowing install
+    would move them silently, so the atlas refuses it."""
+    import artifacts
+
+    artifacts.drifted_vendor(tmp_path, monkeypatch, file=file)
+    out = tmp_path / "atlas.html"
+    outcome = build(PAGE, estate, dataset=write(tmp_path, dataset()), out=out)
+    assert isinstance(outcome, Refused) and f"rational_dynamics_py/{file}" in outcome.reason
+    assert not out.exists()

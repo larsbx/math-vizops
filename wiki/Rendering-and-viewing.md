@@ -73,15 +73,15 @@ what each draws. Each lands at `out/<id>.html`; open it in a browser.
 ```sh
 python -m vizops page mandelbrot-atlas                  # pixi run atlas-dataset in the sibling checkout
 python -m vizops page mandelbrot-atlas --dataset d.json # or its saved output
-python -m vizops page wake-to-mandelbrot                # reads kernel/bulbford/wake.py from its checkout
+python -m vizops page wake-to-mandelbrot                # calls the vendored rational_dynamics_py; no checkout
 python -m vizops page bulbs-and-ford-circles            # transcribes four committed certificate and data files
 ```
 
 For the atlas, no `pixi` and no `--dataset` is `inconclusive`; a missing
 checkout, a malformed dataset or a traced position that disagrees with its
-exact type is `refused` and writes nothing. For the wake page, a missing
-checkout or a `wake.py` that no longer answers as the page reads it is
-`refused`; for Bulbs & Ford Circles, so is a missing file, another schema, or
+exact type is `refused` and writes nothing. For the wake page, a vendored
+copy that has drifted from its `vendored.toml` pin, or one that no longer
+answers as the page reads it, is `refused`; for Bulbs & Ford Circles, so is a missing file, another schema, or
 centre and antipode certificates that disagree about which bulbs exist — see
 [[Outcomes]].
 

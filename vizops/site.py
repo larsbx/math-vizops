@@ -16,7 +16,7 @@ from pathlib import Path
 from . import bridge, media
 from .figure import CAVEAT
 from .outcome import Inconclusive, Rendered, Refused, worst
-from .sources import MANIFEST, load, pages, SourceError
+from .sources import MANIFEST, Page, load, pages, SourceError
 
 
 def digest(path: Path) -> str:
@@ -97,6 +97,18 @@ def freeze(checkout: Path, destination: Path, expected: dict) -> tuple[str, ...]
     return tuple(filenames)
 
 
+def inputs(target) -> tuple[tuple[str, str, object], ...]:
+    """Every (repo, path, vendored pin or None) a scene or page reads.
+
+    A vendored copy is part of this repository's own bound revision, so its
+    upstream repository needs no checkout to be frozen for it.
+    """
+    if isinstance(target, Page):
+        own, *also = target.files()
+        return ((*own, target.pin()), *((repo, path, None) for repo, path in also))
+    return ((target.repo, target.path, target.pin()),)
+
+
 def build(sources: Path, out: Path, *, quality: str = "low") -> int:
     """All declared pages and both canonical media for every scene; no partial deployment."""
     from .__main__ import build_page
@@ -107,7 +119,7 @@ def build(sources: Path, out: Path, *, quality: str = "low") -> int:
     ids = [p.id for _, p in targets]
     if len(ids) != len(set(ids)) or any(not re.fullmatch(r"[a-z0-9][a-z0-9-]*", i) for i in ids):
         raise SourceError("site identifiers must be unique safe filenames")
-    repos = sorted({s.repo for s in scenes} | {r for p in declared_pages for r, _ in p.files()})
+    repos = sorted({repo for _, t in targets for repo, _, pinned in inputs(t) if pinned is None})
     checkouts = {r: sources / r.split('/')[-1] for r in repos}
     owner = Path(__file__).resolve().parents[1]
     bound = {"math-vizops": snapshot(owner), **{r: snapshot(c) for r, c in checkouts.items()}}
@@ -127,8 +139,11 @@ def build(sources: Path, out: Path, *, quality: str = "low") -> int:
                         for repo, checkout in checkouts.items()}
         for kind, target in targets:
             fragments.append(f"<section><h2>{html.escape(target.title)}</h2><p>{html.escape(target.note)}</p>")
-            for repo, path in (target.files() if kind == 'page' else ((target.repo, target.path),)):
-                fragments.append(f"<p>{html.escape(repo)} @ {bound[repo]['revision']} · {html.escape(path)} · sha256:{digest(frozen / repo.split('/')[-1] / path)}</p>")
+            for repo, path, pinned in inputs(target):
+                if pinned is not None:
+                    fragments.append(f"<p>{html.escape(repo)} @ {pinned.commit} (vendored) · {html.escape(path)} · sha256:{target.read(frozen)[1]}</p>")
+                else:
+                    fragments.append(f"<p>{html.escape(repo)} @ {bound[repo]['revision']} · {html.escape(path)} · sha256:{digest(frozen / repo.split('/')[-1] / path)}</p>")
             for mode in (("page",) if kind == 'page' else ("still", "video")):
                 work = scratch / target.id / mode
                 work.mkdir(parents=True)
