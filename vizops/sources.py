@@ -6,9 +6,11 @@ drifted, so there is one answer to "where does this figure come from".
 
 A source is either a sibling checkout, read as it is today, or -- when its
 entry names `vendored` -- a package copied byte-for-byte under `vendor/` and
-pinned in `vendored.toml`, read from that copy and refused if the copy no
-longer has its pinned digest. The second kind names the upstream repository
-and path it was copied from, so the frame is still attributed upstream.
+pinned in `vendored.toml`. `vendored_package` is the only way vizops reaches
+such a package: it imports it, checks every pinned file where the import found
+it, and refuses on any drift. Such an entry names the upstream repository and
+package directory it was copied from, so the frame is still attributed
+upstream, and its digest covers the package's whole pinned file set.
 
 Reading is fail-closed in one direction only: a missing or unreadable artifact
 is a refusal, never an empty figure and never a placeholder. A frame that
@@ -19,6 +21,7 @@ evidence.
 from __future__ import annotations
 
 import hashlib
+import importlib
 import importlib.util
 import sys
 import tomllib
@@ -31,8 +34,12 @@ MANIFEST = Path(__file__).resolve().parent / "sources.toml"
 FORMAT = "vizops sources 1"
 #: Where sibling checkouts live, relative to this repository's own root.
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
-#: The vendoring manifest; package roots in it are relative to its directory.
-VENDORED = Path(__file__).resolve().parents[1] / "vendored.toml"
+#: The vendoring manifest. In the source tree it is the repository root's
+#: `vendored.toml`, the single copy. An installed wheel has no repository root,
+#: so the build copies that file to `vizops/vendored.toml` (`setup.py`,
+#: `build_py`); the source tree never holds that second copy.
+_PACKAGED = Path(__file__).resolve().parent / "vendored.toml"
+VENDORED = _PACKAGED if _PACKAGED.is_file() else Path(__file__).resolve().parents[1] / "vendored.toml"
 
 
 class SourceError(ValueError):
@@ -40,41 +47,92 @@ class SourceError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
-class Copy:
-    """One vendored file: where the copy is, what it was copied from, and its pin."""
+class Pin:
+    """One `vendored.toml` entry: the upstream commit and every pinned file."""
 
-    package: str
+    name: str
     repository: str
     commit: str
-    local: Path
-    digest: str
+    #: (path relative to the directory holding the package, sha256), sorted.
+    files: tuple[tuple[str, str], ...]
 
 
-def pinned_copy(package: str, repo: str, path: str, manifest: Path | None = None) -> Copy:
-    """The vendored copy of `repo`'s `path`, as `vendored.toml` pins it -- or a refusal.
-
-    The upstream path is mapped to the copy at the package directory: the
-    segment of `path` named `package` is where the copy's root begins, so
-    `oracles/rational_dynamics_py/doubling.py` is `<root>/rational_dynamics_py/doubling.py`.
-    """
+def pin(name: str, manifest: Path | None = None) -> Pin:
+    """The pins `vendored.toml` records for package `name`, or a refusal."""
     manifest = manifest or VENDORED
     try:
         entries = tomllib.loads(manifest.read_text(encoding="utf-8")).get("package", [])
     except (OSError, tomllib.TOMLDecodeError) as err:
         raise SourceError(f"{manifest.name} could not be read: {err}") from err
-    entry = next((e for e in entries if isinstance(e, dict) and e.get("name") == package), None)
+    entry = next((e for e in entries if isinstance(e, dict) and e.get("name") == name), None)
     if entry is None:
-        raise SourceError(f"{manifest.name} vendors no package {package!r}")
-    if entry.get("repository") != repo:
-        raise SourceError(f"{manifest.name}: {package} is vendored from {entry.get('repository')}, not {repo}")
-    parts = Path(path).parts
-    if package not in parts:
-        raise SourceError(f"{path} is not inside the vendored package {package}")
-    rel = Path(*parts[parts.index(package):]).as_posix()
-    digest = entry.get("files", {}).get(rel)
-    if not digest:
-        raise SourceError(f"{manifest.name}: {package} pins no {rel}")
-    return Copy(package, repo, entry.get("commit", ""), manifest.parent / entry.get("root", ".") / rel, digest)
+        raise SourceError(f"{manifest.name} vendors no package {name!r}")
+    files = entry.get("files") or {}
+    if not files or not entry.get("repository") or not entry.get("commit"):
+        raise SourceError(f"{manifest.name}: {name} lacks a repository, a commit or pinned files")
+    return Pin(name, entry["repository"], entry["commit"], tuple(sorted(files.items())))
+
+
+@dataclass(frozen=True, slots=True)
+class Vendored:
+    """A vendored package, imported, with every pinned file checked where it was imported from."""
+
+    pin: Pin
+    module: ModuleType
+
+    @property
+    def listing(self) -> bytes:
+        """The verified file set, in `sha256sum` form: the bytes `digest` is over."""
+        return "".join(f"{digest}  {rel}\n" for rel, digest in self.pin.files).encode("utf-8")
+
+    @property
+    def digest(self) -> str:
+        return hashlib.sha256(self.listing).hexdigest()
+
+
+def vendored_package(name: str, manifest: Path | None = None) -> Vendored:
+    """Import vendored package `name` and verify all of it against its pins -- or refuse.
+
+    Each pinned path is resolved against the directory that holds the package
+    Python actually imported (`vendor/python/` in the source tree,
+    `site-packages/` in a wheel), so what is checked is what runs, wherever it
+    was installed and whatever else is on the path. A missing file, a digest
+    that is not the pinned one, or an unpinned source file inside the package
+    is a refusal.
+    """
+    pinned = pin(name, manifest)
+    try:
+        loaded = importlib.import_module(name)
+    except ImportError as err:
+        raise SourceError(f"vendored package {name} could not be imported: {err}") from err
+    if not getattr(loaded, "__file__", None):
+        raise SourceError(f"vendored package {name} has no location to check")
+    package_dir = Path(loaded.__file__).resolve().parent
+    base = package_dir.parent
+    problems: list[str] = []
+    for rel, want in pinned.files:
+        path = base / rel
+        if not path.is_file():
+            problems.append(f"{rel} is missing at {path}")
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != want:
+            problems.append(f"{rel} at {path} differs from {pinned.repository}@{pinned.commit[:12]}")
+    listed = {rel for rel, _ in pinned.files}
+    problems += [f"{p.relative_to(base).as_posix()} is not pinned" for p in sorted(package_dir.rglob("*.py"))
+                 if p.relative_to(base).as_posix() not in listed]
+    if problems:
+        raise SourceError("\n  ".join((f"vendored package {name} refused (pinned in {VENDORED.name}; "
+                                        "re-vendor it, never patch it):", *problems)))
+    return Vendored(pinned, loaded)
+
+
+def _entry_pin(owner: str, vendored: str, repo: str, path: str) -> Pin:
+    """The pin a `vendored = ...` entry names, checked against its repo and path."""
+    found = pin(vendored)
+    if found.repository != repo:
+        raise SourceError(f"{owner}: {vendored} is vendored from {found.repository}, not {repo}")
+    if Path(path).name != vendored:
+        raise SourceError(f"{owner}: path {path} must name the vendored package directory {vendored}")
+    return found
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,26 +152,40 @@ class Scene:
         """The directory name a sibling checkout is expected to have."""
         return self.repo.split("/")[-1]
 
-    def copy(self) -> Copy | None:
-        """The pinned vendored copy this scene reads, or None for a checkout."""
-        return pinned_copy(self.vendored, self.repo, self.path) if self.vendored else None
+    def pin(self) -> Pin | None:
+        """The `vendored.toml` pin this scene names, or None for a checkout."""
+        return _entry_pin(self.id, self.vendored, self.repo, self.path) if self.vendored else None
+
+    def package(self) -> Vendored:
+        """The verified vendored package this scene reads, or a refusal."""
+        if not self.vendored:
+            raise SourceError(f"{self.id}: reads a checkout, not a vendored package")
+        self.pin()
+        try:
+            return vendored_package(self.vendored)
+        except SourceError as err:
+            raise SourceError(f"{self.id}: {err}") from err
 
     def artifact(self, root: Path) -> Path:
-        copy = self.copy()
-        return copy.local if copy else Path(root) / self.checkout / self.path
+        """The checkout file this scene reads; a vendored scene reads no checkout."""
+        if self.vendored:
+            raise SourceError(f"{self.id}: reads the vendored {self.vendored}, not a file in a checkout")
+        return Path(root) / self.checkout / self.path
 
     def read(self, root: Path) -> tuple[bytes, str]:
         """The artifact's bytes and their sha256, or a refusal that names the
-        path that was looked for."""
-        return read_artifact(self.id, self.repo, self.path, self.copy(), Path(root) / self.checkout)
+        path that was looked for. A vendored scene's bytes are its verified
+        file listing."""
+        if self.vendored:
+            package = self.package()
+            return package.listing, package.digest
+        return read_artifact(self.id, self.repo, self.path, Path(root) / self.checkout)
 
 
-def read_artifact(owner: str, repo: str, path: str, copy: Copy | None, checkout: Path) -> tuple[bytes, str]:
-    """A checkout's file as it is, or a vendored copy that still has its pin."""
-    where = copy.local if copy else checkout / path
+def read_artifact(owner: str, repo: str, path: str, checkout: Path) -> tuple[bytes, str]:
+    """A checkout's file as it is."""
+    where = checkout / path
     if not where.is_file():
-        if copy:
-            raise SourceError(f"{owner}: no vendored copy at {where}; it is pinned in {VENDORED.name}")
         raise SourceError(
             f"{owner}: no artifact at {where}. Expected a checkout of {repo} "
             f"at {checkout}; pass --sources to say where the estate is."
@@ -121,13 +193,7 @@ def read_artifact(owner: str, repo: str, path: str, copy: Copy | None, checkout:
     raw = where.read_bytes()
     if not raw:
         raise SourceError(f"{owner}: {where} is empty")
-    digest = hashlib.sha256(raw).hexdigest()
-    if copy and digest != copy.digest:
-        raise SourceError(
-            f"{owner}: {where} differs from {repo}@{copy.commit[:12]} as pinned in {VENDORED.name}; "
-            "re-vendor it, never patch it"
-        )
-    return raw, digest
+    return raw, hashlib.sha256(raw).hexdigest()
 
 
 def load(manifest: Path = MANIFEST) -> tuple[Scene, ...]:
@@ -156,7 +222,7 @@ def load(manifest: Path = MANIFEST) -> tuple[Scene, ...]:
         scene = Scene(**entry)
         if scene.vendored:
             try:
-                scene.copy()
+                scene.pin()
             except SourceError as err:
                 problems.append(f"scene {scene.id}: {err}")
                 continue
@@ -184,21 +250,34 @@ class Page:
     also: tuple[str, ...] = ()
     #: Where a published copy of the page can be viewed, if anywhere.
     artifact: str = ""
-    #: The `vendored.toml` package the page's own `path` is read from, instead
-    #: of a checkout. `also` files are always read from checkouts.
+    #: The `vendored.toml` package the page's own `path` names, instead of a
+    #: checkout. `also` files are always read from checkouts.
     vendored: str = ""
 
     @property
     def checkout(self) -> str:
         return self.repo.split("/")[-1]
 
-    def copy(self) -> Copy | None:
-        """The pinned vendored copy the page's own path names, or None for a checkout."""
-        return pinned_copy(self.vendored, self.repo, self.path) if self.vendored else None
+    def pin(self) -> Pin | None:
+        """The `vendored.toml` pin the page's own path names, or None for a checkout."""
+        return _entry_pin(self.id, self.vendored, self.repo, self.path) if self.vendored else None
+
+    def package(self) -> Vendored:
+        """The verified vendored package the page reads, or a refusal."""
+        if not self.vendored:
+            raise SourceError(f"{self.id}: reads a checkout, not a vendored package")
+        self.pin()
+        try:
+            return vendored_package(self.vendored)
+        except SourceError as err:
+            raise SourceError(f"{self.id}: {err}") from err
 
     def read(self, root: Path) -> tuple[bytes, str]:
         """The page's own source, by the same rules as `Scene.read`."""
-        return read_artifact(self.id, self.repo, self.path, self.copy(), Path(root) / self.checkout)
+        if self.vendored:
+            package = self.package()
+            return package.listing, package.digest
+        return read_artifact(self.id, self.repo, self.path, Path(root) / self.checkout)
 
     def files(self) -> tuple[tuple[str, str], ...]:
         """Every (repo, path) the page reads, its own first."""
@@ -222,7 +301,7 @@ def pages(manifest: Path = MANIFEST) -> tuple[Page, ...]:
     for page in found:
         if page.vendored:
             try:
-                page.copy()
+                page.pin()
             except SourceError as err:
                 problems.append(f"page {page.id}: {err}")
     if problems:

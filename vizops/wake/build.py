@@ -13,8 +13,9 @@ this page used to execute from the sibling checkout; the tabulated rows are
 byte-identical. The Mandelbrot raster, the cardioid-root coordinate and the
 dashed rays are floating point or schematic, and the page says so.
 
-The page is stamped with the digest of the vendored `doubling.py`, which is
-refused if it no longer has its pinned digest. It is a picture of finite
+The package is reached only through `sources.vendored_package`, which checks
+every pinned file where Python imported it and refuses on any drift; the page
+is stamped with the digest of that whole pinned file set. It is a picture of finite
 arithmetic and an imported landing theorem, and it authorizes nothing.
 
 `STILL` is the committed 3/7 still for the wiki. It is drawn by hand, so
@@ -29,14 +30,12 @@ import json
 import re
 from math import gcd
 from pathlib import Path
+from types import ModuleType
 from typing import Any
-
-import rational_dynamics_py as rd
-import rational_dynamics_py.doubling
 
 from ..figure import CAVEAT, Provenance
 from ..outcome import Outcome, Refused, Rendered
-from ..sources import Copy, Page, SourceError
+from ..sources import Page, SourceError
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "page.html"
 STILL = Path(__file__).resolve().parents[2] / "wiki" / "images" / "wake-cycle-3-7.svg"
@@ -44,8 +43,8 @@ STILL = Path(__file__).resolve().parents[2] / "wiki" / "images" / "wake-cycle-3-
 QMAX = 12
 
 
-def rows(qmax: int = QMAX) -> list[dict[str, Any]]:
-    """Every reduced p/q up to `qmax`, as the vendored package answers it."""
+def rows(rd: ModuleType, qmax: int = QMAX) -> list[dict[str, Any]]:
+    """Every reduced p/q up to `qmax`, as the verified vendored package `rd` answers it."""
     def row(p: int, q: int) -> dict[str, Any]:
         den = 2 ** q - 1
         lo, hi = rd.wake(p, q)
@@ -53,23 +52,6 @@ def rows(qmax: int = QMAX) -> list[dict[str, Any]]:
                 "cycle": [int(x * den) for x in rd.rotation_cycle(p, q)],
                 "lo": int(lo * den), "hi": int(hi * den)}
     return [row(p, q) for q in range(2, qmax + 1) for p in range(1, q) if gcd(p, q) == 1]
-
-
-def executed(copy: Copy | None, owner: str) -> Copy:
-    """The pinned copy, checked to be the very file Python imported.
-
-    The stamp names the bytes `read` checked against the pin; this is what
-    makes those the bytes that ran, and not some other `rational_dynamics_py`
-    on the path.
-    """
-    if copy is None:
-        raise SourceError(f"{owner}: the wake data is the vendored rational_dynamics_py's; "
-                          "its sources.toml entry must say vendored = \"rational_dynamics_py\"")
-    imported = Path(rational_dynamics_py.doubling.__file__).resolve()
-    if imported != copy.local.resolve():
-        raise SourceError(f"{owner}: rational_dynamics_py was imported from {imported}, "
-                          f"not the vendored copy at {copy.local}")
-    return copy
 
 
 def still_claims(svg: str) -> dict[str, Any]:
@@ -91,14 +73,13 @@ def build(page: Page, sources: Path, *, dataset: Path | None = None,
     if dataset is not None:
         return Refused(page.id, "this page reads a module, not a dataset; drop --dataset")
     try:
-        _, digest = page.read(Path(sources))
-        executed(page.copy(), page.id)
-        table = rows()
+        package = page.package()
+        table = rows(package.module)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
     except (AttributeError, TypeError, ValueError) as err:
         return Refused(page.id, f"{page.path} no longer answers as this page reads it: {err}")
-    provenance = Provenance(page.repo, page.path, digest, page.note)
+    provenance = Provenance(page.repo, page.path, package.digest, page.note)
     html = (TEMPLATE.read_text(encoding="utf-8")
             .replace("__STAMP__", f"{provenance.stamp} · {CAVEAT}")
             .replace("__QMAX__", str(QMAX))

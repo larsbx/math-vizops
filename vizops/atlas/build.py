@@ -38,11 +38,9 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from rational_dynamics_py import exact_type
-
 from ..figure import CAVEAT, Provenance
 from ..outcome import Inconclusive, Outcome, Refused, Rendered
-from ..sources import Page, SourceError, module
+from ..sources import Page, SourceError, module, vendored_package
 from . import trace as tp
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
@@ -112,11 +110,16 @@ def traced_addresses(catalogues: list[dict]) -> list[dict]:
     return out
 
 
-def traced_components() -> list[dict]:
+#: The vendored package root rays are chosen with (see `traced_components`).
+EXACT = "rational_dynamics_py"
+
+
+def traced_components(rd: ModuleType) -> list[dict]:
     """Root rays traced and met at one centre, which is what groups them.
 
     Which angles are root rays of period-k components is exact, and is the
-    vendored `rational_dynamics_py.exact_type` (finite-math-kernels): an angle
+    `exact_type` of the vendored `rational_dynamics_py` (finite-math-kernels),
+    passed in as `rd` after `sources.vendored_package` has verified it: an angle
     over 2^k - 1 qualifies when its type is (preperiod 0, period k). That
     replaced a local `period_of`, which answered None both for a preperiodic
     angle and for a period past its search cap (cap=32, whose loop admitted
@@ -129,7 +132,7 @@ def traced_components() -> list[dict]:
         den = 2 ** period - 1
         for num in range(1, den):
             theta = Fraction(num, den)
-            if exact_type(theta) != (0, period):
+            if rd.exact_type(theta) != (0, period):
                 continue
             landed = tp.trace_ray(theta, depth=18)
             centre = tp.newton_center(landed, period) if landed is not None else None
@@ -204,11 +207,12 @@ def certificates(ie: ModuleType, addresses: list[dict]) -> list[dict]:
     return rows
 
 
-def assemble(data: dict[str, Any], ie: ModuleType, provenances: tuple[Provenance, ...]) -> tuple[str, dict[str, Any]]:
+def assemble(data: dict[str, Any], ie: ModuleType, provenances: tuple[Provenance, ...],
+             rd: ModuleType) -> tuple[str, dict[str, Any]]:
     """The page, and the dataset it embeds: the exact sections untouched, the
     traced ones beside them."""
     misiurewicz = traced_addresses(data["catalogues"])
-    full = {**data, "misiurewicz": misiurewicz, "components": traced_components(),
+    full = {**data, "misiurewicz": misiurewicz, "components": traced_components(rd),
             "tunings": placed_tunings(data["tunings"]), "certificates": certificates(ie, misiurewicz)}
     head, body, script = ((TEMPLATES / f"{part}.html").read_text(encoding="utf-8")
                           for part in ("head", "body", "script"))
@@ -249,6 +253,7 @@ def build(page: Page, sources: Path, *, dataset: Path | None = None, out: Path =
 
     try:
         data = exact(raw)
+        exact_types = vendored_package(EXACT)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
     emitter = checkout / page.path
@@ -260,9 +265,11 @@ def build(page: Page, sources: Path, *, dataset: Path | None = None, out: Path =
         Provenance(page.repo, ORACLE, hashlib.sha256(oracle_source.read_bytes()).hexdigest()),
         Provenance("dataset", dataset.name if dataset is not None else page.task,
                    hashlib.sha256(raw).hexdigest()),
+        Provenance(exact_types.pin.repository, f"{EXACT} (vendored at {exact_types.pin.commit[:12]})",
+                   exact_types.digest),
     )
     try:
-        html, full = assemble(data, ie, provenances)
+        html, full = assemble(data, ie, provenances, exact_types.module)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
     except (AttributeError, IndexError, KeyError, TypeError, ValueError, ZeroDivisionError) as err:

@@ -4,3 +4,5 @@ __pycache__/
 out/
 .wiki-checkout/
 build/
+# Written into the build tree by setup.py; the root vendored.toml is the only copy.
+vizops/vendored.toml

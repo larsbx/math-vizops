@@ -98,15 +98,15 @@ def freeze(checkout: Path, destination: Path, expected: dict) -> tuple[str, ...]
 
 
 def inputs(target) -> tuple[tuple[str, str, object], ...]:
-    """Every (repo, path, vendored copy or None) a scene or page reads.
+    """Every (repo, path, vendored pin or None) a scene or page reads.
 
     A vendored copy is part of this repository's own bound revision, so its
     upstream repository needs no checkout to be frozen for it.
     """
     if isinstance(target, Page):
         own, *also = target.files()
-        return ((*own, target.copy()), *((repo, path, None) for repo, path in also))
-    return ((target.repo, target.path, target.copy()),)
+        return ((*own, target.pin()), *((repo, path, None) for repo, path in also))
+    return ((target.repo, target.path, target.pin()),)
 
 
 def build(sources: Path, out: Path, *, quality: str = "low") -> int:
@@ -119,7 +119,7 @@ def build(sources: Path, out: Path, *, quality: str = "low") -> int:
     ids = [p.id for _, p in targets]
     if len(ids) != len(set(ids)) or any(not re.fullmatch(r"[a-z0-9][a-z0-9-]*", i) for i in ids):
         raise SourceError("site identifiers must be unique safe filenames")
-    repos = sorted({repo for _, t in targets for repo, _, copy in inputs(t) if copy is None})
+    repos = sorted({repo for _, t in targets for repo, _, pinned in inputs(t) if pinned is None})
     checkouts = {r: sources / r.split('/')[-1] for r in repos}
     owner = Path(__file__).resolve().parents[1]
     bound = {"math-vizops": snapshot(owner), **{r: snapshot(c) for r, c in checkouts.items()}}
@@ -139,9 +139,9 @@ def build(sources: Path, out: Path, *, quality: str = "low") -> int:
                         for repo, checkout in checkouts.items()}
         for kind, target in targets:
             fragments.append(f"<section><h2>{html.escape(target.title)}</h2><p>{html.escape(target.note)}</p>")
-            for repo, path, copy in inputs(target):
-                if copy is not None:
-                    fragments.append(f"<p>{html.escape(repo)} @ {copy.commit} (vendored) · {html.escape(path)} · sha256:{target.read(frozen)[1]}</p>")
+            for repo, path, pinned in inputs(target):
+                if pinned is not None:
+                    fragments.append(f"<p>{html.escape(repo)} @ {pinned.commit} (vendored) · {html.escape(path)} · sha256:{target.read(frozen)[1]}</p>")
                 else:
                     fragments.append(f"<p>{html.escape(repo)} @ {bound[repo]['revision']} · {html.escape(path)} · sha256:{digest(frozen / repo.split('/')[-1] / path)}</p>")
             for mode in (("page",) if kind == 'page' else ("still", "video")):

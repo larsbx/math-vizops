@@ -133,18 +133,25 @@ def estate(root: Path, *, graph_bytes: bytes | None = None, catalogue: str | Non
 VENDOR_ROOT = Path(__file__).resolve().parents[1]
 
 
-def drifted_vendor(tmp_path: Path, monkeypatch, change: bytes = b"\n# a local patch\n") -> Path:
-    """A copy of vendor/ and vendored.toml under `tmp_path`, made the one vizops
-    reads, with `change` appended to the copy of rational_dynamics_py/doubling.py.
+def drifted_vendor(tmp_path: Path, monkeypatch, change: bytes = b"\n# a local patch\n",
+                   file: str = "doubling.py") -> Path:
+    """Make `import rational_dynamics_py` find a copy of the vendored package
+    under `tmp_path`, with `change` appended to its `file`.
 
-    Tests break the copy, never the repository's own vendored files: a vendored
-    scene's `artifact()` is the real file under vendor/.
+    `sources.vendored_package` checks the files of the package Python imported,
+    where it was imported from, so standing a module object that points at the
+    copy in `sys.modules` is exactly a drifted (or shadowing) install. Tests
+    break the copy, never the repository's own vendored files.
     """
-    from vizops import sources
+    import sys
+    import types
 
-    shutil.copy(VENDOR_ROOT / "vendored.toml", tmp_path / "vendored.toml")
-    shutil.copytree(VENDOR_ROOT / "vendor", tmp_path / "vendor", ignore=shutil.ignore_patterns("__pycache__"))
-    doubling = tmp_path / "vendor" / "python" / "rational_dynamics_py" / "doubling.py"
-    doubling.write_bytes(doubling.read_bytes() + change)
-    monkeypatch.setattr(sources, "VENDORED", tmp_path / "vendored.toml")
-    return doubling
+    copy = tmp_path / "site" / "rational_dynamics_py"
+    shutil.copytree(VENDOR_ROOT / "vendor" / "python" / "rational_dynamics_py", copy,
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    target = copy / file
+    target.write_bytes(target.read_bytes() + change)
+    stand_in = types.ModuleType("rational_dynamics_py")
+    stand_in.__file__ = str(copy / "__init__.py")
+    monkeypatch.setitem(sys.modules, "rational_dynamics_py", stand_in)
+    return target

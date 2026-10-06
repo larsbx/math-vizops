@@ -24,7 +24,7 @@ REQUIRED = os.environ.get("VIZOPS_REQUIRE_SOURCES") == "1"
 
 @pytest.mark.parametrize("scene", load(), ids=lambda s: s.id)
 def test_the_real_artifact_draws(scene):
-    if not scene.artifact(root()).is_file():
+    if not scene.vendored and not scene.artifact(root()).is_file():
         message = f"no checkout of {scene.repo} under {root()}"
         pytest.fail(message) if REQUIRED else pytest.skip(message)
     drawn = figure(scene)

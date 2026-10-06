@@ -19,11 +19,9 @@ from dataclasses import dataclass
 from math import cos, pi, sin
 from pathlib import Path
 
-import rational_dynamics_py as rd
-
 from ..figure import CAVEAT, FigureError, Provenance
 from ..sources import Scene, SourceError
-from .build import executed, rows
+from .build import rows
 
 P, Q = 3, 7
 
@@ -74,12 +72,12 @@ class WakeCycleFigure:
 def figure(scene: Scene, sources: Path, p: int = P, q: int = Q) -> WakeCycleFigure:
     """Check the vendored copy and package its 3/7 answers, or refuse."""
 
-    _, digest = scene.read(sources)
-    executed(scene.copy(), scene.id)
+    package = scene.package()
+    digest = package.digest
     try:
-        table = rows(qmax=q)
+        table = rows(package.module, qmax=q)
         row = next(r for r in table if (r["p"], r["q"]) == (p, q))
-        orbit = rd.doubling_orbit(row["word"], row["den"])
+        orbit = package.module.doubling_orbit(row["word"], row["den"])
     except StopIteration as err:
         raise SourceError(f"{scene.id}: the vendored wake data has no {p}/{q} row") from err
     except (AttributeError, TypeError, ValueError) as err:

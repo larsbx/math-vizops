@@ -31,7 +31,7 @@ running in CI. Rendering is the last step and the least interesting one.
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
 | `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
-| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py/doubling.py`](https://github.com/larsbx/finite-math-kernels/blob/4eb5852785af399342d015b86812127cb800e7ff/oracles/rational_dynamics_py/doubling.py) in `larsbx/finite-math-kernels` (vendored at `4eb5852785af`) | `WakeCycleToMandelbrot` |
+| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py`](https://github.com/larsbx/finite-math-kernels/tree/4eb5852785af399342d015b86812127cb800e7ff/oracles/rational_dynamics_py) in `larsbx/finite-math-kernels` (vendored at `4eb5852785af`) | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
 
@@ -111,10 +111,24 @@ copies of `finite-math-kernels`' `oracles/rational_dynamics_py` (the doubling
 map: exact type, rotation cycles, wakes) and `tools/vendoring` (the checker),
 each pinned in `vendored.toml` to one upstream commit and the SHA-256 of every
 file. `pyproject.toml` installs `rational_dynamics_py` under its own name from
-there; nothing edits `sys.path`. The wake scene and page read it through a
-`vendored = "rational_dynamics_py"` entry in `sources.toml`, stamp the pinned
-file's digest, and refuse a copy that has drifted from its pin; the atlas uses
-its `exact_type` to choose root rays.
+there; nothing edits `sys.path`.
+
+vizops reaches the package only through `vizops.sources.vendored_package`. It
+imports the package, resolves every file `vendored.toml` pins for it against
+the directory Python actually imported it from (`vendor/python/` here,
+`site-packages/` in a wheel), checks each SHA-256, refuses a missing file, a
+drifted one or an unpinned module beside them, and returns the verified module
+with a digest over the whole pinned file set. The wake scene and page reach it
+through a `vendored = "rational_dynamics_py"` entry in `sources.toml` and stamp
+that digest; the atlas chooses root rays with its `exact_type` and stamps it
+too.
+
+An installed wheel needs the pins as well. The root `vendored.toml` stays the
+only copy in the repository: `setup.py` hooks `build_py` to copy it into the
+build tree as `vizops/vendored.toml`, which is where an installed vizops reads
+it, and `tests/test_packaging.py` builds a wheel, checks that copy is
+byte-identical to the root file, and runs the installed CLI from outside the
+source tree.
 
 To update: copy the package directories from upstream at the new commit
 (`git archive <sha> oracles/rational_dynamics_py tools/vendoring`), then
