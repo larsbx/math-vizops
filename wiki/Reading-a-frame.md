@@ -60,6 +60,9 @@ own the claims — `proof_records` and `claim_governance` — by an attributable
 act. A video cannot take part in that, and this repository is shaped so that
 it cannot look as though it did.
 
-Nothing is pinned. vizops draws whatever the checkout says today; the digest
-is what makes the frame a statement about one revision rather than a claim
-that the revision is current.
+No checkout is pinned. vizops draws whatever the checkout says today; the
+digest is what makes the frame a statement about one revision rather than a
+claim that the revision is current. The exception is code vizops executes:
+the wake scene's arithmetic is `finite-math-kernels`' `rational_dynamics_py`,
+vendored under `vendor/python/` and pinned per file in `vendored.toml`, so its
+stamp names that upstream file at the pinned digest.

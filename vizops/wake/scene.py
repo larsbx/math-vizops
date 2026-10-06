@@ -2,26 +2,28 @@
 
 The interactive wake page can explore every reduced p/q with q <= 12.  A
 Manim scene has a different job: tell one stable story well.  This module
-therefore asks the *upstream* wake module for the 3/7 specimen and packages
-its answers for the renderer.
+therefore asks the vendored `rational_dynamics_py` (finite-math-kernels,
+pinned in vendored.toml) for the 3/7 specimen and packages its answers for
+the renderer.
 
-No exact wake arithmetic is reimplemented here.  `rows` calls the upstream
-`mechanical`, `rotation_cycle` and `wake` functions, and the orbit order
-below advances with the upstream `double` function.  The only calculation
-owned here is the floating-point main-cardioid root coordinate used as a
-display aid; it is carried separately from the exact integers.
+No exact wake arithmetic is reimplemented here.  `rows` calls the vendored
+`mechanical_word`, `rotation_cycle` and `wake` functions, and the orbit order
+below is the vendored `doubling_orbit`.  The only calculation owned here is
+the floating-point main-cardioid root coordinate used as a display aid; it is
+carried separately from the exact integers.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from fractions import Fraction
 from math import cos, pi, sin
 from pathlib import Path
 
+import rational_dynamics_py as rd
+
 from ..figure import CAVEAT, FigureError, Provenance
-from ..sources import Scene, SourceError, module
-from .build import rows
+from ..sources import Scene, SourceError
+from .build import executed, rows
 
 P, Q = 3, 7
 
@@ -70,25 +72,16 @@ class WakeCycleFigure:
 
 
 def figure(scene: Scene, sources: Path, p: int = P, q: int = Q) -> WakeCycleFigure:
-    """Load the owning module and package its 3/7 answers, or refuse."""
+    """Check the vendored copy and package its 3/7 answers, or refuse."""
 
-    raw, digest = scene.read(sources)
-    checkout = Path(sources) / scene.checkout
+    _, digest = scene.read(sources)
+    executed(scene.copy(), scene.id)
     try:
-        wake = module(checkout, scene.path, raw=raw)
-        table = rows(wake, qmax=q)
+        table = rows(qmax=q)
         row = next(r for r in table if (r["p"], r["q"]) == (p, q))
-
-        den = row["den"]
-        x = Fraction(row["word"], den)
-        orbit: list[int] = []
-        for _ in range(q):
-            orbit.append(int(x * den))
-            x = wake.double(x)
+        orbit = rd.doubling_orbit(row["word"], row["den"])
     except StopIteration as err:
-        raise SourceError(f"{scene.id}: upstream wake module has no {p}/{q} row") from err
-    except SourceError:
-        raise
+        raise SourceError(f"{scene.id}: the vendored wake data has no {p}/{q} row") from err
     except (AttributeError, TypeError, ValueError) as err:
         raise SourceError(f"{scene.id}: {scene.path} no longer answers as the Manim scene reads it: {err}") from err
 

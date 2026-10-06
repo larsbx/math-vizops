@@ -9,6 +9,7 @@ the thing they name, rather than that nothing has gone wrong yet.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -113,6 +114,8 @@ def estate(root: Path, *, graph_bytes: bytes | None = None, catalogue: str | Non
     from vizops.sources import load
 
     for scene in load():
+        if scene.vendored:
+            continue  # read from vendor/, pinned in vendored.toml; never a fixture's to write
         artifact = scene.artifact(root)
         artifact.parent.mkdir(parents=True, exist_ok=True)
         if scene.adapter == "typed_graph":
@@ -125,3 +128,23 @@ def estate(root: Path, *, graph_bytes: bytes | None = None, catalogue: str | Non
             raise AssertionError(f"test fixture has no source for adapter {scene.adapter!r}")
         artifact.write_bytes(payload)
     return root
+
+
+VENDOR_ROOT = Path(__file__).resolve().parents[1]
+
+
+def drifted_vendor(tmp_path: Path, monkeypatch, change: bytes = b"\n# a local patch\n") -> Path:
+    """A copy of vendor/ and vendored.toml under `tmp_path`, made the one vizops
+    reads, with `change` appended to the copy of rational_dynamics_py/doubling.py.
+
+    Tests break the copy, never the repository's own vendored files: a vendored
+    scene's `artifact()` is the real file under vendor/.
+    """
+    from vizops import sources
+
+    shutil.copy(VENDOR_ROOT / "vendored.toml", tmp_path / "vendored.toml")
+    shutil.copytree(VENDOR_ROOT / "vendor", tmp_path / "vendor", ignore=shutil.ignore_patterns("__pycache__"))
+    doubling = tmp_path / "vendor" / "python" / "rational_dynamics_py" / "doubling.py"
+    doubling.write_bytes(doubling.read_bytes() + change)
+    monkeypatch.setattr(sources, "VENDORED", tmp_path / "vendored.toml")
+    return doubling

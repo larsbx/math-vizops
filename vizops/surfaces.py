@@ -69,12 +69,19 @@ class Block:
         return self.begin in text
 
 
+def source_link(repo: str, path: str, copy=None) -> str:
+    """A link to the file read: `main` for a checkout, the pinned commit for a
+    vendored copy, which is what was drawn whatever `main` says today."""
+    ref = copy.commit if copy else "main"
+    where = f" (vendored at `{copy.commit[:12]}`)" if copy else ""
+    return f"[`{path}`](https://github.com/{repo}/blob/{ref}/{path}) in `{repo}`{where}"
+
+
 def scene_table(scenes: Sequence[Scene]) -> str:
     rows = [
         "| Scene | Draws | Source surface | manim scene |",
         "| --- | --- | --- | --- |",
-        *(f"| `{s.id}` | {s.title} | [`{s.path}`](https://github.com/{s.repo}/blob/main/{s.path}) "
-          f"in `{s.repo}` | `{s.scene}` |" for s in scenes),
+        *(f"| `{s.id}` | {s.title} | {source_link(s.repo, s.path, s.copy())} | `{s.scene}` |" for s in scenes),
     ]
     return "\n".join(rows)
 
@@ -104,8 +111,8 @@ def gallery(scenes: Sequence[Scene]) -> str:
     out: list[str] = []
     for scene in scenes:
         still = WIKI / IMAGES / f"{scene.id}.png"
-        out += [f"### {scene.title}", "", f"`{scene.scene}` — drawn from [`{scene.path}`]"
-                f"(https://github.com/{scene.repo}/blob/main/{scene.path}) in `{scene.repo}`.", ""]
+        out += [f"### {scene.title}", "",
+                f"`{scene.scene}` — drawn from {source_link(scene.repo, scene.path, scene.copy())}.", ""]
         out += ([f"![{scene.title}]({IMAGES}/{scene.id}.png)"] if still.is_file() else
                 [f"_No still published yet._ Run `python -m vizops still {scene.id}` "
                  f"and commit `wiki/{IMAGES}/{scene.id}.png`."])
@@ -121,8 +128,8 @@ def page_gallery(_: Sequence[Scene] = ()) -> str:
     out: list[str] = []
     for page in pages():
         still = WIKI / IMAGES / f"{page.id}.png"
-        read = ", ".join(f"[`{path}`](https://github.com/{repo}/blob/main/{path}) in `{repo}`"
-                         for repo, path in page.files())
+        read = ", ".join(source_link(repo, path, page.copy() if i == 0 else None)
+                         for i, (repo, path) in enumerate(page.files()))
         out += [f"### {page.title}", "", f"`python -m vizops page {page.id}` — reads {read}.", ""]
         if page.artifact:
             out += [f"**View it:** [{page.title}]({page.artifact}) — a published build, private to its owner "

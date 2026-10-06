@@ -7,11 +7,18 @@
 # question that already has one. If a figure needs a fact no artifact carries,
 # the fix is upstream, in the generator.
 #
-# Nothing is pinned by digest. vizops draws whatever the checkout says today
-# and stamps that digest on the frame, so a frame is a statement about one
-# revision rather than a claim that the revision is current. Pinning belongs
-# where a consumer must not drift (`vendored.toml` in the sibling repos); a
-# picture of a moving artifact is supposed to move.
+# A checkout is not pinned by digest. vizops draws whatever the checkout says
+# today and stamps that digest on the frame, so a frame is a statement about
+# one revision rather than a claim that the revision is current; a picture of a
+# moving artifact is supposed to move.
+#
+# The one exception is code vizops executes rather than reads. An entry with
+# `vendored = "<package>"` is read from that package's byte-for-byte copy under
+# vendor/python/, pinned to one upstream commit and digest per file in
+# `vendored.toml` (checked in CI by vendor/python/vendoring/check_vendored_sync.py),
+# and a copy that has drifted from its pin is refused. `repo` and `path` still
+# name the upstream file it was copied from. Today that is finite-math-kernels'
+# `rational_dynamics_py`, which the wake scene and page call.
 
 format = "vizops sources 1"
 
@@ -36,11 +43,12 @@ note = "The single machine-readable source of docs/mathematical-object-catalogue
 [[scene]]
 id = "wake-cycle-3-7"
 title = "3/7 wake cycle to Mandelbrot bulb root"
-repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
-path = "kernel/bulbford/wake.py"
+repo = "larsbx/finite-math-kernels"
+path = "oracles/rational_dynamics_py/doubling.py"
+vendored = "rational_dynamics_py"
 adapter = "wake_module"
 scene = "WakeCycleToMandelbrot"
-note = "Exact cycle data are loaded from wake.py for p/q = 3/7; the root coordinate is a numerical display aid and the rational parameter-ray landing relation is the imported [DH/Mil00]."
+note = "Exact cycle data for p/q = 3/7 are the vendored rational_dynamics_py's (ported from the bulbs repository's kernel/bulbford/wake.py); the root coordinate is a numerical display aid and the rational parameter-ray landing relation is the imported [DH/Mil00]."
 
 # A page is a self-contained HTML surface rather than a manim scene, built by
 # `builder` (a package under vizops/). Its source is code the owning repository
@@ -60,10 +68,11 @@ note = "The exact sections are that emitter's, checked against the Python oracle
 [[page]]
 id = "wake-to-mandelbrot"
 title = "Wake cycle to Mandelbrot bulb root"
-repo = "larsbx/mandelbrot-bulbs-and-ford-circles-research"
-path = "kernel/bulbford/wake.py"
+repo = "larsbx/finite-math-kernels"
+path = "oracles/rational_dynamics_py/doubling.py"
+vendored = "rational_dynamics_py"
 builder = "wake"
-note = "Rotation words, doubling cycles and characteristic pairs are that module's; the raster, the root coordinate and the dashed rays are display aids. The landing relation is the imported [DH/Mil00]."
+note = "Rotation words, doubling cycles and characteristic pairs are the vendored rational_dynamics_py's (ported from the bulbs repository's kernel/bulbford/wake.py); the raster, the root coordinate and the dashed rays are display aids. The landing relation is the imported [DH/Mil00]."
 
 [[page]]
 id = "bulbs-and-ford-circles"

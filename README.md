@@ -31,7 +31,7 @@ running in CI. Rendering is the last step and the least interesting one.
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
 | `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
-| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`kernel/bulbford/wake.py`](https://github.com/larsbx/mandelbrot-bulbs-and-ford-circles-research/blob/main/kernel/bulbford/wake.py) in `larsbx/mandelbrot-bulbs-and-ford-circles-research` | `WakeCycleToMandelbrot` |
+| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py/doubling.py`](https://github.com/larsbx/finite-math-kernels/blob/4eb5852785af399342d015b86812127cb800e7ff/oracles/rational_dynamics_py/doubling.py) in `larsbx/finite-math-kernels` (vendored at `4eb5852785af`) | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
 
@@ -62,12 +62,13 @@ python -m vizops page bulbs-and-ford-circles
   the checkout and never copied.
 * **`wake-to-mandelbrot`** — for any reduced `p/q` with `q ≤ 12`, the rotation
   word, the doubling cycle and the characteristic pair `θ₋, θ₊` that select
-  the `p/q` bulb root. Every exact number is
-  `mandelbrot-bulbs-and-ford-circles-research`'s `kernel/bulbford/wake.py`,
-  loaded from the checkout and embedded; the raster, the root coordinate and
-  the dashed rays are display aids. Its 3/7 still,
-  `wiki/images/wake-cycle-3-7.svg`, is drawn by hand and held to the module
-  by `tests/test_estate.py`.
+  the `p/q` bulb root. Every exact number is `finite-math-kernels`'
+  `rational_dynamics_py` — a port of `mandelbrot-bulbs-and-ford-circles-research`'s
+  `kernel/bulbford/wake.py`, vendored under `vendor/python/` (see
+  [Vendored code](#vendored-code)) — and embedded; the raster, the root
+  coordinate and the dashed rays are display aids. Its 3/7 still,
+  `wiki/images/wake-cycle-3-7.svg`, is drawn by hand and held to the package
+  by `tests/test_wake.py`.
 * **`bulbs-and-ford-circles`** — six scenes on the satellite bulbs: the
   critical orbit, Ford circles against bulb sizes, wakes, the parabolic flower
   and its index, how a Krawczyk box certifies a centre, and G against the
@@ -97,9 +98,34 @@ vizops reads the label that generator wrote. Re-deriving it here would put a
 second implementation of an estate rule inside a repository that draws
 pictures.
 
-Nothing is pinned by digest. vizops draws whatever the checkout says today and
-stamps that digest on the frame, so the frame is a statement about one revision
-rather than a claim that the revision is current.
+No checkout is pinned by digest. vizops draws whatever the checkout says today
+and stamps that digest on the frame, so the frame is a statement about one
+revision rather than a claim that the revision is current. Code vizops
+*executes* is the exception, below.
+
+### Vendored code
+
+Exact arithmetic vizops calls rather than reads is vendored, not re-derived and
+not executed out of a sibling checkout. `vendor/python/` holds byte-for-byte
+copies of `finite-math-kernels`' `oracles/rational_dynamics_py` (the doubling
+map: exact type, rotation cycles, wakes) and `tools/vendoring` (the checker),
+each pinned in `vendored.toml` to one upstream commit and the SHA-256 of every
+file. `pyproject.toml` installs `rational_dynamics_py` under its own name from
+there; nothing edits `sys.path`. The wake scene and page read it through a
+`vendored = "rational_dynamics_py"` entry in `sources.toml`, stamp the pinned
+file's digest, and refuse a copy that has drifted from its pin; the atlas uses
+its `exact_type` to choose root rays.
+
+To update: copy the package directories from upstream at the new commit
+(`git archive <sha> oracles/rational_dynamics_py tools/vendoring`), then
+
+```sh
+python vendor/python/vendoring/check_vendored_sync.py pin rational_dynamics_py <sha>
+python vendor/python/vendoring/check_vendored_sync.py pin vendoring <sha>
+python vendor/python/vendoring/check_vendored_sync.py     # what CI runs
+```
+
+Never patch a vendored file; a fix goes upstream and is re-vendored.
 
 ## Every frame carries its provenance, and authorizes nothing
 
@@ -172,7 +198,7 @@ to fold the tail at the source or to facet the figure.
 | `vizops/wiki.py` | Publishing `wiki/` to the repository's GitHub wiki. |
 | `vizops/atlas/build.py` | The atlas page: exact sections from finite-mandelbrot-research, positions traced here. |
 | `vizops/atlas/trace.py` | Where the catalogued objects sit in the parameter plane. |
-| `vizops/wake/build.py` | The wake page: exact angle data from `kernel/bulbford/wake.py`, drawn here. |
+| `vizops/wake/build.py` | The wake page: exact angle data from the vendored `rational_dynamics_py`, drawn here. |
 | `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 
@@ -221,6 +247,8 @@ Xvfb and Mesa. An absent renderer remains `inconclusive`, and blocks deployment.
   against the real sibling checkouts, with `VIZOPS_REQUIRE_SOURCES=1` so that
   a missing checkout fails instead of quietly skipping;
 * the README's scene table has not drifted from `sources.toml`;
+* every vendored file under `vendor/python/` still has the digest
+  `vendored.toml` pins, and no unpinned source file sits beside them;
 * the unit suite, whose negative controls are inputs each refusal is known to
   reject: an artifact of the wrong declared format, a node in an undeclared
   class, an edge to a node that is not there, a renderer that exits clean

@@ -35,15 +35,14 @@ def test_a_malformed_artifact_makes_the_report_fail(tmp_path, capsys):
     assert "not a node in this figure" in capsys.readouterr().out
 
 
-def test_a_broken_wake_module_is_refused_and_other_scenes_still_report(tmp_path, capsys):
-    broken = artifacts.estate(tmp_path / "estate")
-    wake_scene = next(s for s in load() if s.id == "wake-cycle-3-7")
-    wake_scene.artifact(broken).write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+def test_a_drifted_vendored_wake_copy_is_refused_and_other_scenes_still_report(tmp_path, monkeypatch, capsys):
+    estate = artifacts.estate(tmp_path / "estate")
+    artifacts.drifted_vendor(tmp_path, monkeypatch)
 
-    assert main(["--sources", str(broken)]) == 1
+    assert main(["--sources", str(estate)]) == 1
     out = capsys.readouterr().out
     assert "refused   wake-cycle-3-7" in out
-    assert "RuntimeError: boom" in out
+    assert "differs from larsbx/finite-math-kernels@" in out
     assert out.count("ready") == len(load()) - 1
 
 

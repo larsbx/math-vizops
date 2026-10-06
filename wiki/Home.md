@@ -25,7 +25,7 @@ python -m vizops render c1-claim-graph
 | --- | --- | --- | --- |
 | `c1-claim-graph` | C1 claim relationship graph | [`docs/C1_claim_relationship_graph.json`](https://github.com/larsbx/finite-mandelbrot-research/blob/main/docs/C1_claim_relationship_graph.json) in `larsbx/finite-mandelbrot-research` | `ClaimGraph` |
 | `psc-object-catalogue` | PSC mathematical-object catalogue | [`catalogues/mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/catalogues/mathematical_objects.toml) in `larsbx/pisot-substitution-conjecture-research` | `ObjectCatalogue` |
-| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`kernel/bulbford/wake.py`](https://github.com/larsbx/mandelbrot-bulbs-and-ford-circles-research/blob/main/kernel/bulbford/wake.py) in `larsbx/mandelbrot-bulbs-and-ford-circles-research` | `WakeCycleToMandelbrot` |
+| `wake-cycle-3-7` | 3/7 wake cycle to Mandelbrot bulb root | [`oracles/rational_dynamics_py/doubling.py`](https://github.com/larsbx/finite-math-kernels/blob/4eb5852785af399342d015b86812127cb800e7ff/oracles/rational_dynamics_py/doubling.py) in `larsbx/finite-math-kernels` (vendored at `4eb5852785af`) | `WakeCycleToMandelbrot` |
 
 <!-- END generated scene table -->
 

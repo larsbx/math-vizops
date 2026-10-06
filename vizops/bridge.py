@@ -57,8 +57,8 @@ def figure(scene: Scene, sources: Path | None = None) -> Drawable:
     `REFUSALS`.
 
     Most scenes transcribe committed machine-readable artifacts through an
-    adapter.  The wake scene is deliberately module-backed: it calls the exact
-    upstream wake module, the same source already used by the interactive page,
+    adapter.  The wake scene is deliberately module-backed: it calls the
+    vendored `rational_dynamics_py`, the same source the interactive page uses,
     so vizops does not grow a second implementation of that arithmetic.
     """
     source_root = root(sources)
