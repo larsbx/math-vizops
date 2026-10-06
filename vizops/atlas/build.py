@@ -38,6 +38,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from rational_dynamics_py import exact_type
+
 from ..figure import CAVEAT, Provenance
 from ..outcome import Inconclusive, Outcome, Refused, Rendered
 from ..sources import Page, SourceError, module
@@ -111,13 +113,23 @@ def traced_addresses(catalogues: list[dict]) -> list[dict]:
 
 
 def traced_components() -> list[dict]:
-    """Root rays traced and met at one centre, which is what groups them."""
+    """Root rays traced and met at one centre, which is what groups them.
+
+    Which angles are root rays of period-k components is exact, and is the
+    vendored `rational_dynamics_py.exact_type` (finite-math-kernels): an angle
+    over 2^k - 1 qualifies when its type is (preperiod 0, period k). That
+    replaced a local `period_of`, which answered None both for a preperiodic
+    angle and for a period past its search cap (cap=32, whose loop admitted
+    33). `exact_type` is closed form with no cap, so "preperiodic" is
+    `preperiod > 0` and "not found" no longer exists. On the angles asked
+    about here -- odd denominators, k <= MAX_COMPONENT_PERIOD -- the two agree.
+    """
     found: dict[tuple, dict] = {}
     for period in range(1, MAX_COMPONENT_PERIOD + 1):
         den = 2 ** period - 1
         for num in range(1, den):
             theta = Fraction(num, den)
-            if tp.period_of(theta) != period:
+            if exact_type(theta) != (0, period):
                 continue
             landed = tp.trace_ray(theta, depth=18)
             centre = tp.newton_center(landed, period) if landed is not None else None

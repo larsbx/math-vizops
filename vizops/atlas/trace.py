@@ -117,14 +117,3 @@ def satisfies_type(c: complex, preperiod: int, period: int, tol: float = 1e-6) -
         orbit.append(z)
     return abs(orbit[preperiod + period] - orbit[preperiod]) < tol * max(1.0, abs(orbit[preperiod]))
 
-
-def period_of(theta: Fraction, cap: int = 32) -> int | None:
-    """The period of `theta` under doubling, or None when it is not periodic."""
-    if theta.denominator % 2 == 0:
-        return None
-    a, k = theta, 0
-    while k <= cap:
-        a, k = (2 * a) % 1, k + 1
-        if a == theta:
-            return k
-    return None

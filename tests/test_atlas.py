@@ -6,6 +6,7 @@ The exclusion oracle is upstream's and is not copied here, so these tests hand
 `test_estate.py` against the sibling checkout.
 """
 
+import importlib
 import json
 from fractions import Fraction
 from pathlib import Path
@@ -19,6 +20,10 @@ from vizops.atlas.build import ORACLE
 from vizops.figure import CAVEAT
 from vizops.outcome import Inconclusive, Refused, Rendered
 from vizops.sources import SourceError, pages
+
+#: The module, not the `build` function `vizops.atlas` exports under that name.
+atlas_build = importlib.import_module("vizops.atlas.build")
+ROOT = Path(__file__).resolve().parents[1]
 
 PAGE = next(p for p in pages() if p.id == "mandelbrot-atlas")
 STUB_ORACLE = '''
@@ -96,9 +101,23 @@ def test_the_third_ray_names_the_period_two_component():
     assert abs(centre + 1) < 1e-12
 
 
-@pytest.mark.parametrize("theta, period", [(Fraction(1, 7), 3), (Fraction(1, 3), 2), (Fraction(1, 2), None)])
-def test_period_under_doubling(theta, period):
-    assert trace.period_of(theta) == period
+@pytest.mark.parametrize("theta, kind", [
+    (Fraction(1, 7), (0, 3)), (Fraction(1, 3), (0, 2)),
+    (Fraction(1, 2), (1, 1)),               # preperiodic: an exact type, not "None"
+    (Fraction(1, 2 ** 33 - 1), (0, 33)),    # the old cap of 32 admitted 33 ...
+    (Fraction(1, 2 ** 34 - 1), (0, 34)),    # ... and answered None past it; there is no cap now
+    (Fraction(5, 24), (3, 2)),
+])
+def test_the_type_under_doubling_is_the_vendored_exact_one(theta, kind):
+    assert atlas_build.exact_type(theta) == kind
+
+
+def test_root_rays_are_chosen_by_the_vendored_package_and_no_local_copy():
+    import rational_dynamics_py
+
+    assert atlas_build.exact_type is rational_dynamics_py.exact_type
+    assert Path(rational_dynamics_py.__file__).resolve().parent == ROOT / "vendor" / "python" / "rational_dynamics_py"
+    assert not hasattr(trace, "period_of")
 
 
 # --- the dataset, read fail-closed ----------------------------------------------
