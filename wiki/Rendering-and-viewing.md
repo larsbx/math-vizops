@@ -67,7 +67,7 @@ python -m vizops wiki --publish
 
 ## Pages
 
-Three surfaces are HTML pages rather than manim scenes — see [[Pages]] for
+Four surfaces are HTML pages rather than manim scenes — see [[Pages]] for
 what each draws. Each lands at `out/<id>.html`; open it in a browser.
 
 ```sh
@@ -75,6 +75,7 @@ python -m vizops page mandelbrot-atlas                  # pixi run atlas-dataset
 python -m vizops page mandelbrot-atlas --dataset d.json # or its saved output
 python -m vizops page wake-to-mandelbrot                # calls the vendored rational_dynamics_py; no checkout
 python -m vizops page bulbs-and-ford-circles            # transcribes four committed certificate and data files
+python -m vizops page psc-rauzy-representability       # copies the PSC page byte for byte and stamps it
 ```
 
 For the atlas, no `pixi` and no `--dataset` is `inconclusive`; a missing

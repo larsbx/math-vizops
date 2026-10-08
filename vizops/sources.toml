@@ -88,3 +88,12 @@ also = [
   "larsbx/finite-math-kernels:conformance/cyclotomic_germ_v1.json",
 ]
 note = "Certified centre and antipode boxes, G brackets and the q = 1009 sweep are that repository's; the exact indices are finite-math-kernels' cyclotomic germ vectors. The page transcribes them; every certificate it shows was issued upstream."
+
+[[page]]
+id = "psc-rauzy-representability"
+title = "PSC Rauzy representability"
+repo = "larsbx/pisot-substitution-conjecture-research"
+path = "docs/rauzy-representability-2026-10-08.html"
+builder = "rauzy"
+artifact = "https://claude.ai/artifact/6gdPGTXbt68XLNdQ4KqSbt"
+note = "The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp."

@@ -76,6 +76,7 @@ class is refused rather than given a generated hue.
 | `vizops/wake/build.py` | The wake page: exact angle data from the vendored `rational_dynamics_py`, drawn here. |
 | `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
+| `vizops/rauzy/build.py` | The Rauzy representability page: the upstream HTML verbatim, plus its stamp. |
 
 <!-- END generated module table -->
 

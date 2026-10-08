@@ -1,8 +1,9 @@
 # Pages
 
-Three surfaces are self-contained HTML pages rather than manim scenes: an
-atlas, an interactive wake explorer, and a six-scene tour of the satellite
-bulbs. Each is a `[[page]]` entry in
+Four surfaces are self-contained HTML pages rather than manim scenes: an
+atlas, an interactive wake explorer, a six-scene tour of the satellite
+bulbs, and pisot-substitution-conjecture-research's Rauzy representability
+map, copied byte for byte and stamped. Each is a `[[page]]` entry in
 [`vizops/sources.toml`](https://github.com/larsbx/math-vizops/blob/main/vizops/sources.toml),
 built into `out/<id>.html` by `python -m vizops page <id>`, and never
 committed. Open the file in a browser; [[Rendering and viewing]] covers the
@@ -43,5 +44,15 @@ republish it when its sources move.
 ![Bulbs & Ford Circles](images/bulbs-and-ford-circles.png)
 
 > Certified centre and antipode boxes, G brackets and the q = 1009 sweep are that repository's; the exact indices are finite-math-kernels' cyclotomic germ vectors. The page transcribes them; every certificate it shows was issued upstream.
+
+### PSC Rauzy representability
+
+`python -m vizops page psc-rauzy-representability` — reads [`docs/rauzy-representability-2026-10-08.html`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/rauzy-representability-2026-10-08.html) in `larsbx/pisot-substitution-conjecture-research`.
+
+**View it:** [PSC Rauzy representability](https://claude.ai/artifact/6gdPGTXbt68XLNdQ4KqSbt) — a published build, private to its owner until shared.
+
+![PSC Rauzy representability](images/psc-rauzy-representability.png)
+
+> The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp.
 
 <!-- END generated page gallery -->
