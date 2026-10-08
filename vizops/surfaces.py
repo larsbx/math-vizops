@@ -32,6 +32,7 @@ MODULES = (
     "sources.py", "adapters.py", "figure.py", "layout.py",
     "palette.py", "outcome.py", "bridge.py", "scenes.py", "surfaces.py", "wiki.py",
     "atlas/build.py", "atlas/trace.py", "wake/build.py", "wake/scene.py", "bulbs/build.py",
+    "rauzy/build.py",
 )
 
 

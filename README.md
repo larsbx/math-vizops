@@ -40,7 +40,7 @@ or wherever `--sources` / `$VIZOPS_SOURCES` points.
 
 ## Pages
 
-Three surfaces are not manim scenes but self-contained HTML pages, each declared
+Four surfaces are not manim scenes but self-contained HTML pages, each declared
 as a `[[page]]` in `sources.toml` and built into `out/<id>.html`, never
 committed:
 
@@ -49,6 +49,7 @@ python -m vizops page                                     # every page
 python -m vizops page mandelbrot-atlas --dataset d.json   # the atlas from saved emitter output
 python -m vizops page wake-to-mandelbrot
 python -m vizops page bulbs-and-ford-circles
+python -m vizops page psc-rauzy-representability
 ```
 
 * **`mandelbrot-atlas`** — the ray address atlas for
@@ -80,7 +81,60 @@ python -m vizops page bulbs-and-ford-circles
   another schema, or centre and antipode certificates that disagree about
   which bulbs exist is refused.
 
+* **`psc-rauzy-representability`** — pisot-substitution-conjecture-research's
+  map of which closed claims can be stated as claims about (adelic) Rauzy
+  fractals, with its eight figures. The page is that repository's committed
+  HTML, copied byte for byte; the classification and every figure are its own,
+  and `vizops/rauzy/build.py` adds only the stamp. A file that is missing, not
+  HTML, or without its claim table or figure gallery is refused. See
+  [PSC Rauzy representability](#psc-rauzy-representability) below.
+
 A page carries each source's stamp and the same caveat as a frame.
+
+## PSC Rauzy representability
+
+The figures of the `psc-rauzy-representability` page, extracted from a build of
+it (`wiki/images/psc-rauzy/`). The groupings and wording are the upstream
+page's: Tribonacci (σ: 1→12, 2→13, 3→1) for the first seven, and a non-unit
+specimen for the eighth. They depict that page at one digest and authorize
+nothing; the classification lives, and is reviewed, upstream.
+
+<table>
+<tr>
+<td width="25%"><img src="wiki/images/psc-rauzy/embed.png" alt="Prefix walk under the embedding"><br><sub><b>The embedding π<sub>c</sub>∘ℓ</b><br><code>AlgebraicEmbedding</code></sub></td>
+<td width="25%"><img src="wiki/images/psc-rauzy/bounded.png" alt="Rauzy fractal inside its bounding disc"><br><sub><b>Bounded, hence compact</b><br><code>G1b1BoundedDiscrepancy</code></sub></td>
+<td width="25%"><img src="wiki/images/psc-rauzy/seteq.png" alt="The five pieces of the set equation"><br><sub><b>The set equation</b><br><code>OrderedAffineCycleIdentity</code>, <code>OverlapBadSCCNormalForm</code></sub></td>
+<td width="25%"><img src="wiki/images/psc-rauzy/nbrs.png" alt="Central tile and its six neighbours"><br><sub><b>A finite neighbour set</b><br><code>SwapOverlapFiniteness</code></sub></td>
+</tr>
+<tr>
+<td><img src="wiki/images/psc-rauzy/boundary.png" alt="Subtiles meeting only on boundaries"><br><sub><b>Subtiles meet only on boundaries</b><br><code>AlignedOverlapsAreStrongCoincidence</code>, <code>BoundaryCoincidenceCriterion</code></sub></td>
+<td><img src="wiki/images/psc-rauzy/periodic.png" alt="Periodic points and the offset w0*"><br><sub><b>Periodic points and w₀*</b><br><code>StrictZipperPeriodicPairForm</code>, <code>OverlapBoundaryZipperDichotomy</code></sub></td>
+<td><img src="wiki/images/psc-rauzy/tiling.png" alt="Lattice tiling by translates"><br><sub><b>Lattice tiling and fibres</b><br><code>PDSImpliesRepoG1</code>, <code>PDSImpliesSeedwiseTermination</code>, <code>PeriodicPairOneFibre</code>, <code>ReturnModuleFullRank</code></sub></td>
+<td><img src="wiki/images/psc-rauzy/nonunit.png" alt="Overlapping archimedean shadow of a non-unit specimen"><br><sub><b>Why “Rauzy” has to mean adelic</b><br>σ: 1→122, 2→31, 3→1, |det M| = 2</sub></td>
+</tr>
+</table>
+
+**Read further in pisot-substitution-conjecture-research**
+
+* [The page itself](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/rauzy-representability-2026-10-08.html) — the
+  source this page copies; its claim table gives the reason for each class
+  ([published build](https://claude.ai/artifact/6gdPGTXbt68XLNdQ4KqSbt), private
+  until shared).
+* [Mathematical-object catalogue](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/mathematical-object-catalogue.md) —
+  every object with its canonical Mojo implementation and independent oracle;
+  generated from [`mathematical_objects.toml`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/catalogues/mathematical_objects.toml),
+  which the `psc-object-catalogue` scene draws.
+* Motivation: [why PSC](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/psc-motivation-2026-10-02.md), the
+  [motivations index](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/motivations/README.md) and the
+  [ternary literature context](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/motivations/ternary-literature-context-2026-10-07.md).
+* Status: the [claim-status and source map](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/claim-status-and-source-map-2026-09-13.md),
+  the generated [claim ledger index](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/ledger-index.md), the
+  [proof ladder](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/proof-ladder.md), the
+  [conjecture ledger](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/conjecture-ledger.md) and the
+  [research roadmap](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/research-roadmap-2026-09-21.md).
+* [Side-notes ledger](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/side-notes-ledger.md) — refuted routes, settled
+  specimens and finite observations, including this classification's entry.
+* [Documentation index](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/docs/README.md) — everything else.
 
 ## Draw the artifact, never the mathematics
 
@@ -215,6 +269,7 @@ to fold the tail at the source or to facet the figure.
 | `vizops/wake/build.py` | The wake page: exact angle data from the vendored `rational_dynamics_py`, drawn here. |
 | `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
+| `vizops/rauzy/build.py` | The Rauzy representability page: the upstream HTML verbatim, plus its stamp. |
 
 <!-- END generated module table -->
 

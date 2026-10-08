@@ -14,7 +14,7 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops import bulbs
+from vizops import bulbs, rauzy
 from vizops.atlas.build import oracle
 from vizops.sources import load, pages
 from vizops.wake.scene import WakeCycleFigure
@@ -71,3 +71,13 @@ def test_the_real_certificates_sweep_and_germ_transcribe():
         pytest.fail(message) if REQUIRED else pytest.skip(message)
     data = bulbs.transcribe(*(bulbs.read(root(), repo, path)[0] for repo, path in page.files()))
     assert len(data["bulbs"]) == 79 and len(data["dense"]) == 504 and len(data["iota"]) == 22
+
+
+def test_the_real_rauzy_page_carries_its_table_and_gallery():
+    """The page is copied, not transcribed, so what can change shape upstream is
+    the set of markers it is registered for."""
+    page = PAGES["rauzy"]
+    checkout_of(page)
+    text, provenance = rauzy.read(root(), page)
+    assert provenance.repo == page.repo and text.count("data-fig=") >= 1
+
