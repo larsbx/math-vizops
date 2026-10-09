@@ -1,0 +1,462 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#f6f7f9;color:#11151d}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mandelbrot Names Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an instrument and its register. The circle of external angles (the
+   minor lamination of the named components) sits beside the list of names; the
+   chosen name's dossier opens under them; a coverage matrix closes the page. */
+:root {
+  --paper: #f6f7f9;  --panel: #ffffff;  --wash: #eceff4;  --rule: #d9dde5;
+  --ink: #11151d;    --ink-2: #465063;  --ink-3: #697286;
+  --accent: #1f3fbf;                                   /* links, focus, selection */
+  --hyp: #2a78d6;    --mis: #eb6834;    --cas: #1baf7a; /* categorical slots 1-3 */
+  --q1: #b7d3f6; --q2: #86b6ef; --q3: #3987e5; --q4: #1c5cab; --q5: #0d366b;
+  --q-ink-lo: #11151d; --q-ink-hi: #ffffff;
+  --display: "STIX Two Text", "STIX Two Math", Cambria, Georgia, serif;
+  --body: "Source Sans 3", "Source Sans Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141821; --panel: #1b2029; --wash: #222834; --rule: #2e3542;
+    --ink: #eef1f6;   --ink-2: #b6bdcc; --ink-3: #8c95a7;
+    --accent: #9db2ff;
+    --hyp: #3987e5;   --mis: #d95926;   --cas: #199e70;
+    --q1: #1b3355; --q2: #104281; --q3: #1c5cab; --q4: #3987e5; --q5: #86b6ef;
+    --q-ink-lo: #eef1f6; --q-ink-hi: #0d1420;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141821; --panel: #1b2029; --wash: #222834; --rule: #2e3542;
+  --ink: #eef1f6;   --ink-2: #b6bdcc; --ink-3: #8c95a7;
+  --accent: #9db2ff;
+  --hyp: #3987e5;   --mis: #d95926;   --cas: #199e70;
+  --q1: #1b3355; --q2: #104281; --q3: #1c5cab; --q4: #3987e5; --q5: #86b6ef;
+  --q-ink-lo: #eef1f6; --q-ink-hi: #0d1420;
+  color-scheme: dark;
+}
+html { background: var(--paper); }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* masthead */
+.mast { padding-block: 32px 18px; display: grid; gap: 10px; border-bottom: 1px solid var(--rule); }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font-family: var(--display); font-weight: 600; font-size: clamp(34px, 6vw, 56px); line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.lede { max-width: 68ch; color: var(--ink-2); margin: 0; font-size: 16px; }
+.figures { display: flex; flex-wrap: wrap; gap: 6px 22px; font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 14px; }
+.figures b { font-family: var(--display); font-weight: 600; font-size: 20px; color: var(--ink); margin-right: 4px; }
+
+/* filters */
+.filters { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 4; background: var(--paper); border-bottom: 1px solid var(--rule); padding-block: 10px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.filters input[type=search] { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); color: var(--ink); min-width: 0; width: 16rem; max-width: 100%; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .lbl { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-right: 2px; }
+.chip { font: inherit; font-size: 13px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink-2); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+/* instrument + register */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; padding-block: 24px 8px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.dial { width: 100%; max-width: 560px; height: auto; display: block; margin-inline: auto; }
+.dial text { font-family: var(--display); fill: var(--ink-2); font-size: 15px; }
+.dial .rim { fill: none; stroke: var(--ink-3); stroke-width: 1.2; }
+.dial .tick { stroke: var(--ink-3); stroke-width: 1.2; }
+.dial .geo { fill: none; stroke: var(--hyp); stroke-width: 2; stroke-linecap: round; cursor: pointer; }
+.dial .geo.cas { stroke: var(--cas); stroke-dasharray: 5 4; }
+.dial .dot { fill: var(--mis); stroke: var(--panel); stroke-width: 2; cursor: pointer; }
+.dial .pin { fill: var(--hyp); stroke: var(--panel); stroke-width: 2; cursor: pointer; }
+.dial .hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; }
+.dial .dim { opacity: .18; }
+.dial .on { stroke-width: 3.5; opacity: 1; }
+.dial .dot.on, .dial .pin.on { stroke: var(--ink); stroke-width: 2.5; }
+.dial .tagback { fill: var(--paper); opacity: .88; }
+.dial .tag { font-family: var(--body); font-size: 13px; fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { width: 26px; height: 12px; }
+figcaption { font-size: 13px; color: var(--ink-3); max-width: 62ch; margin-inline: auto; text-align: center; }
+
+.register { min-width: 0; display: grid; gap: 18px; }
+@media (min-width: 861px) { .register { max-height: 680px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; } }
+.group h3 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.group h3 .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.rows li { border-bottom: 1px solid var(--rule); }
+.row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; width: 100%; padding: 7px 4px; cursor: pointer; align-items: baseline; }
+.row:hover { background: var(--wash); }
+.row[aria-current="true"] { background: var(--wash); box-shadow: inset 3px 0 0 var(--ink); }
+.row .nm { font-family: var(--display); font-size: 17px; min-width: 0; overflow-wrap: anywhere; }
+.row .key { font-family: var(--display); color: var(--ink-2); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row .n { font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 13px; min-width: 3ch; text-align: right; }
+.status { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--rule); border-radius: 4px; padding: 0 5px; color: var(--ink-3); margin-left: 6px; vertical-align: 2px; font-family: var(--body); }
+.empty { color: var(--ink-3); font-style: italic; padding: 6px 2px; }
+
+/* dossier */
+.dossier { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; display: grid; gap: 18px; margin-block: 18px; }
+.dossier header { display: grid; gap: 4px; }
+.dossier h2 { font-family: var(--display); font-weight: 600; font-size: clamp(24px, 3.4vw, 32px); margin: 0; line-height: 1.15; text-wrap: balance; }
+.dossier .aka { color: var(--ink-2); }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 22px; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.cols h4 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px; font-weight: 600; }
+dl.keyed { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; }
+dl.keyed dt { color: var(--ink-3); font-size: 13px; }
+dl.keyed dd { margin: 0; font-family: var(--display); font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.rels { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.rels .via { color: var(--ink-3); }
+.linkish { all: unset; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-family: var(--display); font-size: 15px; }
+.repo { display: grid; gap: 8px; }
+.repo + .repo { margin-top: 14px; }
+.repo h5 { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-2); font-family: var(--mono); }
+.occ { border-left: 2px solid var(--rule); padding: 2px 0 2px 12px; display: grid; gap: 3px; min-width: 0; }
+.occ .head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.pill { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; background: var(--wash); color: var(--ink-2); white-space: nowrap; }
+.pill.rel { background: var(--ink); color: var(--paper); }
+.occ .what { font-size: 14px; }
+.occ .where { font-family: var(--mono); font-size: 12px; color: var(--ink-3); overflow-wrap: anywhere; }
+.occ .datum { font-family: var(--display); font-size: 14px; color: var(--ink-2); }
+.occ .note { font-size: 13px; color: var(--ink-3); }
+
+/* coverage */
+.coverage { padding-block: 28px 0; display: grid; gap: 10px; }
+.coverage h2, .notes h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; }
+.coverage p, .notes p { margin: 0; color: var(--ink-2); max-width: 70ch; }
+.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+table.matrix { border-collapse: separate; border-spacing: 2px; font-variant-numeric: tabular-nums; min-width: 640px; width: 100%; }
+.matrix th { font-weight: 600; font-size: 12px; color: var(--ink-3); text-align: center; padding: 6px 4px; }
+.matrix th.nm { text-align: left; font-family: var(--display); font-size: 15px; font-weight: 400; color: var(--ink); padding-left: 10px; white-space: nowrap; }
+.matrix th.nm button { all: unset; cursor: pointer; }
+.matrix th.nm button:hover { text-decoration: underline; }
+.matrix td { text-align: center; font-size: 13px; height: 26px; min-width: 52px; border-radius: 3px; background: var(--wash); color: var(--ink-3); }
+.matrix td.t { background: transparent; font-weight: 600; color: var(--ink); }
+.scale { display: flex; gap: 2px; align-items: center; font-size: 12px; color: var(--ink-3); }
+.scale i { width: 22px; height: 12px; border-radius: 2px; display: inline-block; }
+
+.notes { padding-block: 32px 0; display: grid; gap: 10px; }
+.notes ul { margin: 0; padding-left: 18px; color: var(--ink-2); max-width: 74ch; display: grid; gap: 4px; }
+.stamp { font-size: 13px; color: var(--ink-3); }
+@media (prefers-reduced-motion: no-preference) { .dial .geo, .dial .dot, .dial .pin { transition: opacity .15s, stroke-width .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="eyebrow">finite-mandelbrot-research · structure crosswalk</div>
+    <h1>Mandelbrot Names Atlas</h1>
+    <p class="lede">Every common name for a structure of the Mandelbrot set, from the main cardioid to Seahorse Valley, with the exact data the atlas keys it to and every place in the estate's code and data that holds the same datum. Choose a name to open its dossier.</p>
+    <div class="figures" id="figures"></div>
+  </header>
+
+  <div class="filters" role="search">
+    <label class="sr" for="q" hidden>Search names</label>
+    <input id="q" type="search" placeholder="Search names, e.g. rabbit" autocomplete="off">
+    <div class="chips" id="kinds"><span class="lbl">Kind</span></div>
+    <div class="chips" id="statuses"><span class="lbl">Name</span></div>
+  </div>
+
+  <main>
+    <section class="bench">
+      <figure>
+        <svg class="dial" id="dial" viewBox="-300 -300 600 600" role="img" aria-labelledby="dial-cap"></svg>
+        <div class="legend" aria-hidden="true">
+          <span><svg viewBox="0 0 26 12"><path d="M2 10 Q13 0 24 10" fill="none" stroke="var(--hyp)" stroke-width="2"/></svg>component root rays</span>
+          <span><svg viewBox="0 0 26 12"><circle cx="13" cy="6" r="5" fill="var(--mis)"/></svg>Misiurewicz rays</span>
+          <span><svg viewBox="0 0 26 12"><path d="M2 10 Q13 0 24 10" fill="none" stroke="var(--cas)" stroke-width="2" stroke-dasharray="5 4"/></svg>cascade levels</span>
+        </div>
+        <figcaption id="dial-cap">External angles θ in ℝ/ℤ, with 0 at the right and θ increasing counter-clockwise. Each named component's two root rays are joined by a hyperbolic geodesic, the picture of Thurston's minor lamination. Angles are exact; their positions are drawn for display.</figcaption>
+      </figure>
+      <div class="register" id="register" aria-label="Named structures"></div>
+    </section>
+
+    <section class="dossier" id="dossier" aria-live="polite"></section>
+
+    <section class="coverage">
+      <h2>Where the code meets the names</h2>
+      <p>Occurrences per structure and repository: each counts a place whose code or committed data holds the structure's exact datum, certifies it, attaches an invariant to it, or names it. Class names carry no datum and are left out.</p>
+      <div class="scale" id="scale"></div>
+      <div class="scroll"><table class="matrix" id="matrix"></table></div>
+    </section>
+
+    <section class="notes">
+      <h2>What this page shows</h2>
+      <ul>
+        <li>Every name, key and relation is transcribed from the crosswalk surface, which upstream checks against the atlas and against each file it names.</li>
+        <li id="upcaveat"></li>
+        <li>The circle draws exact rational angles at floating-point display positions. It locates nothing in the parameter plane.</li>
+      </ul>
+      <p class="stamp">Source: __SOURCES__ · __CAVEAT__</p>
+    </section>
+  </main>
+</div>
+
+<script>
+const DATA = __DATA__;
+(() => {
+  "use strict";
+  const KIND_ORDER = ["hyperbolic-component", "cascade", "misiurewicz-parameter", "boundary-parameter", "region", "julia-set", "class"];
+  const KIND_LABEL = {
+    "hyperbolic-component": "Hyperbolic components", "cascade": "Cascade", "misiurewicz-parameter": "Misiurewicz parameters",
+    "boundary-parameter": "Boundary parameters", "region": "Valleys", "julia-set": "Julia sets", "class": "Kinds of structure",
+  };
+  const KIND_SWATCH = { "hyperbolic-component": "var(--hyp)", "misiurewicz-parameter": "var(--mis)", "cascade": "var(--cas)" };
+  const REPO_ORDER = ["larsbx/finite-mandelbrot-research", "larsbx/finite-math-kernels", "larsbx/mandelbrot-bulbs-and-ford-circles-research",
+    "larsbx/finite-julia-set-research", "larsbx/julia-oracle-lab", "larsbx/math-vizops"];
+  const REPO_SHORT = { "larsbx/finite-mandelbrot-research": "Mandelbrot", "larsbx/finite-math-kernels": "kernels",
+    "larsbx/mandelbrot-bulbs-and-ford-circles-research": "bulbs", "larsbx/finite-julia-set-research": "Julia sets",
+    "larsbx/julia-oracle-lab": "Julia oracles", "larsbx/math-vizops": "vizops" };
+  const FIELD_LABEL = { root_angles: "root rays", angles: "rays", internal_address: "internal address", period: "period",
+    root_parameter: "root c", parameter: "c", center_polynomial: "centre polynomial", center_interval: "centre interval",
+    angle_type: "angle type (ℓ, k)", critical_orbit_type: "critical orbit (ℓ, k)", landing_cycle: "falls into", limb: "limb",
+    rotation: "rotation", levels: "levels", convergents: "convergents", accumulation: "limbs accumulate",
+    conjugate_of: "conjugate of", tuning_of: "tuning image of", center: "centre c" };
+
+  const S = new Map(DATA.structures.map(s => [s.id, s]));
+  const occBy = new Map(DATA.structures.map(s => [s.id, []]));
+  DATA.occurrences.forEach(o => o.atlas.forEach(a => occBy.get(a) && occBy.get(a).push(o)));
+  const repos = REPO_ORDER.filter(r => DATA.occurrences.some(o => o.repo === r))
+    .concat([...new Set(DATA.occurrences.map(o => o.repo))].filter(r => !REPO_ORDER.includes(r)));
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    }
+    kids.flat().forEach(c => c != null && n.append(c.nodeType ? c : document.createTextNode(c)));
+    return n;
+  };
+  const NS = "http://www.w3.org/2000/svg";
+  const sv = (tag, attrs = {}) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+
+  /* display formatting of exact values: never a computation of mathematics */
+  const frac = t => String(t).replace("-", "−");
+  const list = xs => xs.map(frac).join(", ");
+  const SUP = { 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+  const poly = cs => cs.map((a, p) => [a, p]).reverse().filter(([a]) => a !== 0).map(([a, p], i) => {
+    const sign = a < 0 ? (i ? " − " : "−") : (i ? " + " : ""); const m = Math.abs(a);
+    const coeff = (m === 1 && p > 0) ? "" : String(m); const v = p === 0 ? "" : p === 1 ? "c" : "c" + (SUP[p] || "^" + p);
+    return sign + coeff + v; }).join("");
+  const fmt = (k, v) => {
+    if (k === "center_polynomial") return poly(v);
+    if (k === "internal_address") return v.join(" → ");
+    if (k === "parameter") return `${frac(v[0])} ${String(v[1]).startsWith("-") ? "−" : "+"} ${frac(String(v[1]).replace("-", ""))} i`.replace(" + 0 i", "").replace(" − 0 i", "");
+    if (k === "angle_type" || k === "critical_orbit_type") return `(${v.join(", ")})`;
+    if (k === "center_interval") return `[${list(v)}]`;
+    if (k === "levels") return v.map(l => "(" + list(l) + ")").join(" → ");
+    if (k === "accumulation") return `on ${(S.get(v.parent) || {}).label || v.parent} toward rotation ${frac(v.rotation)}`;
+    if (k === "tuning_of") return `${(S.get(v.image_of) || {}).label || v.image_of}, tuned by ${(S.get(v.by) || {}).label || v.by}`;
+    if (k === "conjugate_of") return (S.get(v) || {}).label || v;
+    if (k === "limb" || k === "rotation") return frac(v) + "-limb".slice(k === "rotation" ? 6 : 0);
+    if (Array.isArray(v)) return list(v);
+    if (v && typeof v === "object") return Object.entries(v).map(([a, b]) => `${a} ${typeof b === "object" ? JSON.stringify(b) : b}`).join(", ");
+    return frac(v);
+  };
+  const keySummary = s => {
+    const k = s.key || {};
+    if (k.root_angles) return k.root_angles.length > 1 ? `(${list(k.root_angles)})` : `θ = ${frac(k.root_angles[0])}`;
+    if (k.angles) return list(k.angles);
+    if (k.accumulation) return "→ " + frac(k.accumulation.rotation);
+    if (k.convergents) return k.convergents.slice(-1).map(frac)[0] + " …";
+    return "";
+  };
+  const ratio = t => { const [a, b = "1"] = String(t).split("/"); return Number(a) / Number(b); };
+
+  /* state */
+  const state = { sel: null, q: "", kinds: new Set(KIND_ORDER.filter(k => DATA.structures.some(s => s.kind === k))), statuses: new Set(["field", "eponym", "folk"]) };
+  const tokenOf = id => id.replace(/\//g, "_");
+  const idOf = tok => DATA.structures.find(s => tokenOf(s.id) === tok)?.id;
+  const visible = s => state.kinds.has(s.kind) && (!s.status || state.statuses.has(s.status)) &&
+    (!state.q || [s.id, ...s.names].join(" ").toLowerCase().includes(state.q));
+
+  /* related structures, read off the surface's own links */
+  const related = id => {
+    const out = new Set([id]);
+    DATA.links.forEach(([a, , b]) => { if (a === id) out.add(b); if (b === id) out.add(a); });
+    return out;
+  };
+
+  /* masthead figures */
+  const instances = DATA.structures.filter(s => s.kind !== "class");
+  const met = instances.filter(s => occBy.get(s.id).length);
+  document.getElementById("figures").append(
+    el("span", {}, el("b", { text: DATA.structures.length }), "named structures"),
+    el("span", {}, el("b", { text: DATA.occurrences.length }), "occurrences in code and data"),
+    el("span", {}, el("b", { text: repos.length }), "repositories"),
+    el("span", {}, el("b", { text: `${met.length}/${instances.length}` }), "structures meet the code"));
+  document.getElementById("upcaveat").textContent = DATA.caveat;
+
+  /* filters */
+  const chipBox = (id, values, label, set) => {
+    const box = document.getElementById(id);
+    values.forEach(v => box.append(el("button", { class: "chip", type: "button", id: `${id}-${v}`, "aria-pressed": "true",
+      onclick: e => { set.has(v) ? set.delete(v) : set.add(v); e.currentTarget.setAttribute("aria-pressed", set.has(v)); render(); } }, label(v))));
+  };
+  chipBox("kinds", [...state.kinds], k => KIND_LABEL[k].replace("Kinds of structure", "Kinds"), state.kinds);
+  chipBox("statuses", ["field", "eponym", "folk"], s => s, state.statuses);
+  document.getElementById("q").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); render(); });
+
+  /* the angle circle */
+  const R = 250, dial = document.getElementById("dial");
+  const pt = (t, r = R) => [r * Math.cos(2 * Math.PI * ratio(t)), -r * Math.sin(2 * Math.PI * ratio(t))];
+  const geodesic = (a, b) => {
+    let x = ratio(a), y = ratio(b); if (y < x) [x, y] = [y, x];
+    const [p, q] = [pt(a), pt(b)];
+    const d = Math.min(y - x, 1 - (y - x)) * 2 * Math.PI;
+    if (d > Math.PI - 1e-6) return `M${p} L${q}`;
+    const r = R * Math.tan(d / 2), sweep = (y - x) <= .5 ? 1 : 0;
+    return `M${p[0].toFixed(2)} ${p[1].toFixed(2)} A${r.toFixed(2)} ${r.toFixed(2)} 0 0 ${sweep} ${q[0].toFixed(2)} ${q[1].toFixed(2)}`;
+  };
+  const marks = [];
+  const drawDial = () => {
+    dial.replaceChildren();
+    dial.append(sv("circle", { class: "rim", cx: 0, cy: 0, r: R }));
+    [["0", "0"], ["1/4", "¼"], ["1/2", "½"], ["3/4", "¾"]].forEach(([t, lab]) => {
+      const [x1, y1] = pt(t, R - 6), [x2, y2] = pt(t, R + 6), [lx, ly] = pt(t, R + 24);
+      dial.append(sv("line", { class: "tick", x1, y1, x2, y2 }));
+      const tx = sv("text", { x: lx, y: ly + 5, "text-anchor": "middle" }); tx.textContent = lab; dial.append(tx);
+    });
+    const add = (s, node, hitD) => {
+      const g = sv("g", { "data-id": s.id, tabindex: "-1" });
+      g.append(node);
+      if (hitD) g.append(sv("path", { class: "hit", d: hitD }));
+      const title = sv("title"); title.textContent = `${s.label} ${keySummary(s)}`; g.append(title);
+      g.addEventListener("click", () => select(s.id));
+      dial.append(g); marks.push({ id: s.id, g, node });
+    };
+    DATA.structures.forEach(s => {
+      const k = s.key || {};
+      if (s.kind === "hyperbolic-component" && k.root_angles) {
+        if (k.root_angles.length === 1) { const [x, y] = pt(k.root_angles[0]); add(s, sv("circle", { class: "pin", cx: x, cy: y, r: 7 })); }
+        else { const d = geodesic(...k.root_angles); add(s, sv("path", { class: "geo", d }), d); }
+      } else if (s.kind === "cascade" && k.levels) {
+        k.levels.filter(l => l.length === 2).forEach((l, i) => { const d = geodesic(...l); add(s, sv("path", { class: "geo cas", d }), d); });
+      } else if (s.kind === "misiurewicz-parameter" && k.angles) {
+        k.angles.forEach(t => { const [x, y] = pt(t); add(s, sv("circle", { class: "dot", cx: x, cy: y, r: 6.5 })); });
+      }
+    });
+    tagLayer = sv("g"); dial.append(tagLayer);
+  };
+  let tagLayer;
+  const paintDial = () => {
+    const rel = state.sel ? related(state.sel) : null;
+    marks.forEach(m => {
+      const s = S.get(m.id), show = visible(s);
+      m.g.style.display = show ? "" : "none";
+      m.node.classList.toggle("dim", !!rel && !rel.has(m.id));
+      m.node.classList.toggle("on", !!rel && rel.has(m.id));
+    });
+    tagLayer.replaceChildren();
+    if (!rel) return;
+    const placed = [];
+    const clear = (x, y) => { while (placed.some(([u, v]) => Math.abs(v - y) < 15 && Math.abs(u - x) < 150)) y += 15; placed.push([x, y]); return y; };
+    [...rel].map(id => S.get(id)).filter(s => s && s.key && (s.key.root_angles || s.key.angles)).forEach(s => {
+      const ts = s.key.root_angles || s.key.angles;
+      const [lo, hi] = [ratio(ts[0]), ratio(ts[ts.length - 1])], wide = hi - lo > .5;
+      const mid = (lo + hi) / 2 + (wide ? .5 : 0), half = Math.PI * Math.min(hi - lo, 1 - (hi - lo));
+      // just inside the geodesic's apex, at R(1 - sin h)/cos h from the centre; a lone angle sits inside the rim
+      const [x, y] = pt(mid, ts.length > 1 && half > 1e-9 ? R * (1 - Math.sin(half)) / Math.cos(half) - 16 : R - 24);
+      const tx = sv("text", { class: "tag", x, y: clear(x, y + 4), "text-anchor": x < -60 ? "start" : x > 60 ? "end" : "middle" });
+      tx.textContent = s.label; tagLayer.append(tx);
+      const b = tx.getBBox();
+      tagLayer.insertBefore(sv("rect", { class: "tagback", x: b.x - 3, y: b.y - 1, width: b.width + 6, height: b.height + 2, rx: 3 }), tx);
+    });
+  };
+
+  /* register */
+  const reg = document.getElementById("register");
+  const renderRegister = () => {
+    reg.replaceChildren();
+    KIND_ORDER.filter(k => state.kinds.has(k)).forEach(kind => {
+      const items = DATA.structures.filter(s => s.kind === kind && visible(s));
+      if (!items.length) return;
+      const sw = KIND_SWATCH[kind] ? el("span", { class: "sw", style: `background:${KIND_SWATCH[kind]}` }) : null;
+      reg.append(el("div", { class: "group" }, el("h3", {}, sw, KIND_LABEL[kind]),
+        el("ul", { class: "rows" }, items.map(s => el("li", {}, el("button", {
+          class: "row", type: "button", "aria-current": String(state.sel === s.id), onclick: () => select(s.id),
+        }, el("span", { class: "nm" }, s.label, s.status ? el("span", { class: "status", text: s.status }) : null),
+           el("span", { class: "key", text: keySummary(s) }),
+           el("span", { class: "n", title: "occurrences", text: occBy.get(s.id).length || "–" })))))));
+    });
+    if (!reg.children.length) reg.append(el("p", { class: "empty", text: "No name matches the search and filters." }));
+  };
+
+  /* dossier */
+  const dos = document.getElementById("dossier");
+  const blob = (o) => `https://github.com/${o.repo}/blob/main/${o.path}`;
+  const renderDossier = () => {
+    const s = S.get(state.sel);
+    if (!s) { dos.hidden = true; return; }
+    dos.hidden = false;
+    const key = Object.entries(s.key || {});
+    const out = DATA.links.filter(([a]) => a === s.id), inn = DATA.links.filter(([, , b]) => b === s.id);
+    const occ = occBy.get(s.id);
+    // every relation reads subject–relation–object: "<this> satellite-of X" out, "X conjugate-of <this>" in
+    const relItem = (id, rel, dir) => el("li", {}, el("span", { class: "via", text: dir === "out" ? `${rel} ` : "" }),
+      el("button", { class: "linkish", type: "button", onclick: () => select(id) }, (S.get(id) || {}).label || id),
+      el("span", { class: "via", text: dir === "in" ? ` ${rel} ${s.label}` : "" }));
+    dos.replaceChildren(
+      el("header", {},
+        el("div", { class: "eyebrow", text: `${KIND_LABEL[s.kind] || s.kind}${s.status ? " · " + s.status + " name" : ""}` }),
+        el("h2", { text: s.label }),
+        s.names.length > 1 ? el("div", { class: "aka", text: "Also: " + s.names.slice(1).join(" · ") }) : null),
+      el("div", { class: "cols" },
+        el("div", {},
+          el("h4", { text: "Exact key" }),
+          key.length ? el("dl", { class: "keyed" }, key.map(([k, v]) => [el("dt", { text: FIELD_LABEL[k] || k }), el("dd", { text: fmt(k, v) })]).flat())
+                     : el("p", { class: "empty", text: s.kind === "class" ? "A name for a kind of structure; it has no key." : "No finite key; see its relations." }),
+          (out.length || inn.length) ? el("h4", { style: "margin-top:18px", text: "In the atlas" }) : null,
+          (out.length || inn.length) ? el("ul", { class: "rels" }, out.map(([, r, b]) => relItem(b, r, "out")), inn.map(([a, r]) => relItem(a, r, "in"))) : null),
+        el("div", {},
+          el("h4", { text: occ.length ? `In the code · ${occ.length}` : "In the code" }),
+          occ.length ? repos.filter(r => occ.some(o => o.repo === r)).map(r => el("div", { class: "repo" },
+            el("h5", { text: r }),
+            occ.filter(o => o.repo === r).map(o => el("div", { class: "occ" },
+              el("div", { class: "head" }, el("span", { class: "pill rel", title: DATA.relations[o.relation] || "", text: o.relation }),
+                el("span", { class: "pill", title: DATA.classes[o.plane] || "", text: o.plane }),
+                o.emits ? el("span", { class: "pill", text: "emits " + o.emits }) : null),
+              el("div", { class: "what", text: o.label }),
+              el("div", { class: "where" }, el("a", { href: blob(o), target: "_blank", rel: "noopener" }, o.path),
+                o.anchor ? " · " + o.anchor : o.json_row ? ` · ${o.json_row.array} row ${JSON.stringify(o.json_row.match)}` : ""),
+              o.datum && Object.keys(o.datum).length ? el("div", { class: "datum", text: Object.entries(o.datum).map(([k, v]) => `${FIELD_LABEL[k] || k}: ${fmt(k, v)}`).join(" · ") }) : null,
+              o.note ? el("div", { class: "note", text: o.note }) : null))))
+          : el("p", { class: "empty", text: "No occurrence yet: nothing in the estate's code or data holds this structure's datum." }))));
+  };
+
+  /* coverage matrix */
+  const RAMP = ["var(--q1)", "var(--q2)", "var(--q3)", "var(--q4)", "var(--q5)"];
+  const step = n => n <= 0 ? -1 : n === 1 ? 0 : n <= 2 ? 1 : n <= 4 ? 2 : n <= 7 ? 3 : 4;
+  const renderMatrix = () => {
+    const tb = document.getElementById("matrix");
+    const head = el("tr", {}, el("th", { class: "nm", scope: "col", text: "Structure" }), repos.map(r => el("th", { scope: "col", title: r, text: REPO_SHORT[r] || r })), el("th", { scope: "col", text: "All" }));
+    const rows = instances.filter(visible).map(s => {
+      const occ = occBy.get(s.id);
+      return el("tr", {}, el("th", { class: "nm", scope: "row" }, el("button", { type: "button", onclick: () => select(s.id), text: s.label })),
+        repos.map(r => { const n = occ.filter(o => o.repo === r).length, i = step(n);
+          return el("td", { title: `${s.label} · ${REPO_SHORT[r] || r}: ${n}`, style: i < 0 ? "" : `background:${RAMP[i]};color:${i >= 2 ? "var(--q-ink-hi)" : "var(--q-ink-lo)"}`, text: n || "" }); }),
+        el("td", { class: "t", text: occ.length || "–" }));
+    });
+    tb.replaceChildren(el("thead", {}, head), el("tbody", {}, rows));
+  };
+  document.getElementById("scale").append("occurrences ", ...["1", "2", "3–4", "5–7", "8+"].map((lab, i) => el("span", { style: "display:inline-flex;gap:4px;align-items:center;margin-right:8px" }, el("i", { style: `background:${RAMP[i]}` }), lab)));
+
+  /* selection */
+  const select = id => {
+    state.sel = state.sel === id ? null : id;
+    try { history.replaceState(null, "", state.sel ? "#" + tokenOf(state.sel) : location.pathname); } catch (e) {}
+    render();
+    if (state.sel) dos.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  };
+  const render = () => { renderRegister(); paintDial(); renderDossier(); renderMatrix(); };
+
+  drawDial();
+  state.sel = idOf((location.hash || "").slice(1)) || "bulb-1/3";
+  render();
+})();
+</script>
+</body></html>

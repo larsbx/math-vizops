@@ -40,7 +40,7 @@ or wherever `--sources` / `$VIZOPS_SOURCES` points.
 
 ## Pages
 
-Four surfaces are not manim scenes but self-contained HTML pages, each declared
+Five surfaces are not manim scenes but self-contained HTML pages, each declared
 as a `[[page]]` in `sources.toml` and built into `out/<id>.html`, never
 committed:
 
@@ -50,6 +50,7 @@ python -m vizops page mandelbrot-atlas --dataset d.json   # the atlas from saved
 python -m vizops page wake-to-mandelbrot
 python -m vizops page bulbs-and-ford-circles
 python -m vizops page psc-rauzy-representability
+python -m vizops page mandelbrot-names-atlas
 ```
 
 * **`mandelbrot-atlas`** — the ray address atlas for
@@ -88,6 +89,17 @@ python -m vizops page psc-rauzy-representability
   and `vizops/rauzy/build.py` adds only the stamp. A file that is missing, not
   HTML, or without its claim table or figure gallery is refused. See
   [PSC Rauzy representability](#psc-rauzy-representability) below.
+
+* **`mandelbrot-names-atlas`** — every common name for a structure of the
+  Mandelbrot set, from the main cardioid to Seahorse Valley: its exact atlas
+  key, its atlas relations (satellite, tuning, conjugate, Julia set of, …) and
+  each place in the estate's code and data that holds the same datum. It
+  transcribes `finite-mandelbrot-research`'s structure crosswalk
+  (`docs/structure_crosswalk.json`) field for field; the angle circle draws
+  the exact root angles as Poincaré-disk geodesics at display positions. That
+  a ray pair lands at a component is the imported landing theorem, which the
+  page names. Another format, an undeclared class or relation, a duplicate
+  id, a dangling edge or a float is refused.
 
 A page carries each source's stamp and the same caveat as a frame.
 
@@ -270,6 +282,7 @@ to fold the tail at the source or to facet the figure.
 | `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 | `vizops/rauzy/build.py` | The Rauzy representability page: the upstream HTML verbatim, plus its stamp. |
+| `vizops/crosswalk/build.py` | The Mandelbrot Names Atlas page: the structure crosswalk, transcribed. |
 
 <!-- END generated module table -->
 

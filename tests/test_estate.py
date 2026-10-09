@@ -14,7 +14,7 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops import bulbs, rauzy
+from vizops import bulbs, crosswalk, rauzy
 from vizops.atlas.build import oracle
 from vizops.sources import load, pages
 from vizops.wake.scene import WakeCycleFigure
@@ -81,3 +81,14 @@ def test_the_real_rauzy_page_carries_its_table_and_gallery():
     text, provenance = rauzy.read(root(), page)
     assert provenance.repo == page.repo and text.count("data-fig=") >= 1
 
+
+
+def test_the_real_crosswalk_transcribes():
+    """Every edge of the upstream crosswalk resolves and the named structures meet the code."""
+    page = PAGES["crosswalk"]
+    checkout_of(page)
+    surface, provenance = crosswalk.read(root(), page)
+    data = crosswalk.transcribe(surface)
+    assert provenance.repo == page.repo
+    assert {"main-cardioid", "bulb-1/3", "douady-rabbit"} <= {s["id"] for s in data["structures"]}
+    assert data["occurrences"] and all(o["atlas"] for o in data["occurrences"])
