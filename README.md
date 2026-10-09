@@ -60,7 +60,13 @@ python -m vizops page psc-rauzy-representability
   positions are traced here by `vizops/atlas/trace.py` — floating point, the
   analytic machinery that repository's kernel refuses, and a placement rather
   than a claim. The exclusion-box verdicts are upstream's oracle, loaded from
-  the checkout and never copied.
+  the checkout and never copied. Component names and atlas ids come from its
+  `docs/structure_crosswalk.json`, registered as another page input and stamped
+  with its own digest. Complete root-ray pairs match as exact rationals, so
+  `6/15, 9/15` identify `bulb-1/2.1/2` just as `2/5, 3/5` do. The crosswalk's
+  canonical label is shown; the emitter's tuning labels remain aliases in the
+  inspector and supply names missing from the crosswalk, including primitive
+  period 4. Unknown pairs stay unnamed, and no conjugate name is inferred.
 * **`wake-to-mandelbrot`** — for any reduced `p/q` with `q ≤ 12`, the rotation
   word, the doubling cycle and the characteristic pair `θ₋, θ₊` that select
   the `p/q` bulb root. Every exact number is `finite-math-kernels`'

@@ -1,0 +1,432 @@
+{
+  "source": {
+    "repository": "larsbx/finite-mandelbrot-research",
+    "commit": "47fd8ae5e88368f7b271aac6b8a3e14dc7e68721",
+    "crosswalk_path": "docs/structure_crosswalk.json",
+    "crosswalk_sha256": "494144f41ed260670fa413dd81f5e0d2e4cd973a1c952393b671d7d8e1e5d655",
+    "emitter_path": "kernel/mojo/entrypoints/atlas_dataset.mojo",
+    "emitter_sha256": "9b639c8a70910122269772bf621c74d465b053e215e55273e036e041e01b778e",
+    "note": "Hyperbolic-component nodes copied verbatim from the crosswalk; one emitted tuning row per component."
+  },
+  "crosswalk": {
+    "format": "structure crosswalk 1",
+    "repository": "larsbx/finite-mandelbrot-research",
+    "classes": [
+      {
+        "id": "atlas/boundary-parameter",
+        "name": "atlas: boundary-parameter"
+      },
+      {
+        "id": "atlas/cascade",
+        "name": "atlas: cascade"
+      },
+      {
+        "id": "atlas/class",
+        "name": "atlas: class"
+      },
+      {
+        "id": "atlas/hyperbolic-component",
+        "name": "atlas: hyperbolic-component"
+      },
+      {
+        "id": "atlas/julia-set",
+        "name": "atlas: julia-set"
+      },
+      {
+        "id": "atlas/misiurewicz-parameter",
+        "name": "atlas: misiurewicz-parameter"
+      },
+      {
+        "id": "atlas/region",
+        "name": "atlas: region"
+      },
+      {
+        "id": "kernel",
+        "name": "canonical executable code (Mojo)"
+      },
+      {
+        "id": "reference",
+        "name": "non-authoritative reference implementation"
+      },
+      {
+        "id": "oracle",
+        "name": "independent oracle"
+      },
+      {
+        "id": "schema",
+        "name": "declared contract or table"
+      },
+      {
+        "id": "data",
+        "name": "committed machine-readable data or certificates"
+      },
+      {
+        "id": "test",
+        "name": "conformance test or fixture"
+      },
+      {
+        "id": "doc",
+        "name": "exposition"
+      },
+      {
+        "id": "experiment",
+        "name": "non-authoritative experiment"
+      },
+      {
+        "id": "view",
+        "name": "a visualization surface that draws or names the structure"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "main-cardioid",
+        "class": "atlas/hyperbolic-component",
+        "label": "main cardioid",
+        "names": [
+          "main cardioid",
+          "period-1 component"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "0/1"
+          ],
+          "root_parameter": "1/4",
+          "period": 1,
+          "internal_address": [
+            1
+          ],
+          "center_polynomial": [
+            0,
+            1
+          ],
+          "center_interval": [
+            "-1/2",
+            "1/2"
+          ]
+        }
+      },
+      {
+        "id": "bulb-1/2",
+        "class": "atlas/hyperbolic-component",
+        "label": "period-2 bulb",
+        "names": [
+          "period-2 bulb",
+          "1/2-bulb"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "1/3",
+            "2/3"
+          ],
+          "root_parameter": "-3/4",
+          "rotation": "1/2",
+          "period": 2,
+          "internal_address": [
+            1,
+            2
+          ],
+          "center_polynomial": [
+            1,
+            1
+          ],
+          "center_interval": [
+            "-3/2",
+            "-1/2"
+          ]
+        }
+      },
+      {
+        "id": "bulb-1/3",
+        "class": "atlas/hyperbolic-component",
+        "label": "1/3-bulb",
+        "names": [
+          "1/3-bulb",
+          "rabbit bulb"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "1/7",
+            "2/7"
+          ],
+          "rotation": "1/3",
+          "period": 3,
+          "internal_address": [
+            1,
+            3
+          ],
+          "center_polynomial": [
+            1,
+            1,
+            2,
+            1
+          ]
+        }
+      },
+      {
+        "id": "bulb-2/3",
+        "class": "atlas/hyperbolic-component",
+        "label": "2/3-bulb",
+        "names": [
+          "2/3-bulb",
+          "co-rabbit bulb"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "5/7",
+            "6/7"
+          ],
+          "rotation": "2/3",
+          "period": 3,
+          "internal_address": [
+            1,
+            3
+          ],
+          "center_polynomial": [
+            1,
+            1,
+            2,
+            1
+          ],
+          "conjugate_of": "bulb-1/3"
+        }
+      },
+      {
+        "id": "bulb-1/4",
+        "class": "atlas/hyperbolic-component",
+        "label": "1/4-bulb",
+        "names": [
+          "1/4-bulb"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "1/15",
+            "2/15"
+          ],
+          "rotation": "1/4",
+          "period": 4,
+          "internal_address": [
+            1,
+            4
+          ],
+          "center_polynomial": [
+            1,
+            0,
+            2,
+            3,
+            3,
+            3,
+            1
+          ]
+        }
+      },
+      {
+        "id": "bulb-1/2.1/2",
+        "class": "atlas/hyperbolic-component",
+        "label": "period-4 bulb of the period-2 bulb",
+        "names": [
+          "period-4 bulb of the period-2 bulb",
+          "1/2-bulb of the 1/2-bulb"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "2/5",
+            "3/5"
+          ],
+          "root_parameter": "-5/4",
+          "rotation": "1/2",
+          "period": 4,
+          "internal_address": [
+            1,
+            2,
+            4
+          ],
+          "center_polynomial": [
+            1,
+            0,
+            2,
+            3,
+            3,
+            3,
+            1
+          ],
+          "center_interval": [
+            "-1.3108",
+            "-1.3106"
+          ]
+        }
+      },
+      {
+        "id": "airplane-component",
+        "class": "atlas/hyperbolic-component",
+        "label": "period-3 window",
+        "names": [
+          "period-3 window",
+          "airplane component",
+          "largest real island"
+        ],
+        "name_status": "field",
+        "key": {
+          "root_angles": [
+            "3/7",
+            "4/7"
+          ],
+          "root_parameter": "-7/4",
+          "period": 3,
+          "internal_address": [
+            1,
+            2,
+            3
+          ],
+          "center_polynomial": [
+            1,
+            1,
+            2,
+            1
+          ],
+          "center_interval": [
+            "-1.7549",
+            "-1.7548"
+          ]
+        }
+      },
+      {
+        "id": "kokopelli-component",
+        "class": "atlas/hyperbolic-component",
+        "label": "Kokopelli component",
+        "names": [
+          "Kokopelli component"
+        ],
+        "name_status": "folk",
+        "key": {
+          "root_angles": [
+            "1/5",
+            "4/15"
+          ],
+          "period": 4,
+          "internal_address": [
+            1,
+            3,
+            4
+          ],
+          "center_polynomial": [
+            1,
+            0,
+            2,
+            3,
+            3,
+            3,
+            1
+          ]
+        }
+      }
+    ]
+  },
+  "tunings": [
+    {
+      "component": "doubling",
+      "lo": [
+        1,
+        3
+      ],
+      "hi": [
+        2,
+        3
+      ],
+      "theta": [
+        1,
+        3
+      ],
+      "tuned": [
+        2,
+        5
+      ],
+      "period": 4
+    },
+    {
+      "component": "rabbit",
+      "lo": [
+        1,
+        7
+      ],
+      "hi": [
+        2,
+        7
+      ],
+      "theta": [
+        1,
+        3
+      ],
+      "tuned": [
+        10,
+        63
+      ],
+      "period": 6
+    },
+    {
+      "component": "airplane",
+      "lo": [
+        3,
+        7
+      ],
+      "hi": [
+        4,
+        7
+      ],
+      "theta": [
+        1,
+        3
+      ],
+      "tuned": [
+        4,
+        9
+      ],
+      "period": 6
+    },
+    {
+      "component": "primitive period 4",
+      "lo": [
+        7,
+        15
+      ],
+      "hi": [
+        8,
+        15
+      ],
+      "theta": [
+        1,
+        3
+      ],
+      "tuned": [
+        8,
+        17
+      ],
+      "period": 8
+    },
+    {
+      "component": "satellite period 4",
+      "lo": [
+        2,
+        5
+      ],
+      "hi": [
+        3,
+        5
+      ],
+      "theta": [
+        1,
+        3
+      ],
+      "tuned": [
+        7,
+        17
+      ],
+      "period": 8
+    }
+  ]
+}

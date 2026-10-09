@@ -8,14 +8,17 @@ failure, because a check that silently skips in the one place it was meant to
 run is not a check.
 """
 
+import importlib
+import json
 import os
+from pathlib import Path
 
 import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
 from vizops import bulbs, rauzy
-from vizops.atlas.build import oracle
+from vizops.atlas.build import name_components, oracle, structure_names
 from vizops.sources import load, pages
 from vizops.wake.scene import WakeCycleFigure
 
@@ -60,6 +63,20 @@ def test_the_real_exclusion_oracle_decides_the_pinned_box():
     ie = oracle(checkout_of(PAGES["atlas"]))
     excluded, forbidden, failures = ie.excluded_count(ie.c_minus_2_box(), 2, 1, 3)
     assert excluded == forbidden and not failures
+
+
+def test_the_real_crosswalk_names_the_unreduced_satellite():
+    page = PAGES["atlas"]
+    checkout_of(page)
+    repo, path = page.files()[1]
+    raw = (root() / repo.split("/")[-1] / path).read_bytes()
+    names = structure_names(raw, page.repo)
+    component, = name_components([{"period": 4, "rays": [[6, 15], [9, 15]]}], [], names)
+    assert component["atlas_id"] == "bulb-1/2.1/2"
+    assert component["name"] == "period-4 bulb of the period-2 bulb"
+    occurrence = next(n for n in json.loads(raw)["nodes"] if n["id"] == "vizops-named-root-rays")
+    own = Path(importlib.import_module("vizops.atlas.build").__file__)
+    assert occurrence["anchor"] in own.read_text()
 
 
 def test_the_real_certificates_sweep_and_germ_transcribe():

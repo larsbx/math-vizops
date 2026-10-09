@@ -3,6 +3,8 @@ const DATA = __DATA__;
 
 const fmt = (v, n = 6) => (v < 0 ? "" : "+") + v.toFixed(n);
 const frac = (p, q) => p + "/" + q;
+const escapeHTML = (value) => String(value).replace(/[&<>"']/g,
+  ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
 /* group addresses that land at one parameter: several rays may share a point */
 const points = new Map();
@@ -89,7 +91,7 @@ function plotMarks() {
   const mark = (re, im, r, cls, id, label) => {
     const [x, y] = toPx(re, im);
     parts.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="var(--${cls})"` +
-      ` stroke="var(--plot-in)" stroke-width="1" data-id="${id}" tabindex="0" role="button"><title>${label}</title></circle>`);
+      ` stroke="var(--plot-in)" stroke-width="1" data-id="${id}" tabindex="0" role="button"><title>${escapeHTML(label)}</title></circle>`);
   };
   if (show.comp) DATA.components.forEach((c, i) => {
     if (inside(c.re, c.im)) mark(c.re, c.im, 5, "periodic", "c" + i,
@@ -146,7 +148,10 @@ function inspect(kind, index, reveal = true) {
   } else if (kind === "c") {
     const c = DATA.components[index];
     rows.push(["kind", "hyperbolic component"]);
-    if (c.name) rows.push(["name", c.name]);
+    if (c.name) rows.push(["name", escapeHTML(c.name)]);
+    if (c.atlas_id) rows.push(["atlas id", escapeHTML(c.atlas_id)]);
+    const aliases = c.names.filter(n => n !== c.name);
+    if (aliases.length) rows.push(["also named", aliases.map(escapeHTML).join(" · ")]);
     rows.push(["period", c.period]);
     rows.push(["root rays", c.rays.map(r => frac(r[0], r[1])).join("  ·  ")]);
     rows.push(["centre", fmt(c.re, 10) + "  " + fmt(c.im, 10) + "i"]);
@@ -207,7 +212,7 @@ document.querySelector("#tunings tbody").innerHTML = DATA.tunings.map(t =>
 document.querySelector("#components tbody").innerHTML = DATA.components.map((c, i) =>
   `<tr data-id="c${i}"><td class="n">${c.period}</td>` +
   `<td class="n">${c.rays.map(r => frac(r[0], r[1])).join(", ")}</td>` +
-  `<td class="n">${fmt(c.re, 6)} ${fmt(c.im, 6)}i</td><td>${c.name ?? ""}</td></tr>`).join("");
+  `<td class="n">${fmt(c.re, 6)} ${fmt(c.im, 6)}i</td><td>${escapeHTML(c.name ?? "")}</td></tr>`).join("");
 
 /* ---- interaction ----------------------------------------------------------- */
 const pick = (id) => inspect(id[0], +id.slice(1));
