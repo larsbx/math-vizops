@@ -10,6 +10,9 @@ decided measures, the incidence packages -- come from one run of its
 `pixi run atlas-dataset`, the canonical implementation, which its
 `tests/test_atlas_dataset.py` checks against the Python oracles. vizops reads
 that output and refuses it if a section is missing or a float has leaked in.
+Component names and atlas ids come from the registered structure crosswalk,
+matched by period and complete root-ray sets as exact rationals. The emitter's
+tuning labels remain aliases, and supply names absent from the crosswalk.
 
 Positions cannot come from there: they are floating point, and no module under
 its `kernel/` may produce one. They come from `trace.py` beside this file, and
@@ -40,7 +43,7 @@ from typing import Any
 
 from ..figure import CAVEAT, Provenance
 from ..outcome import Inconclusive, Outcome, Refused, Rendered
-from ..sources import Page, SourceError, module, vendored_package
+from ..sources import Page, SourceError, module, read_artifact, vendored_package
 from . import trace as tp
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
@@ -49,11 +52,7 @@ TEMPLATES = Path(__file__).resolve().parent / "templates"
 SECTIONS = frozenset({"counts", "catalogues", "kneading", "tunings", "graphs", "density", "incidence"})
 ORACLE = "reference/python/interval/interval_exclusion_reference.py"
 MAX_COMPONENT_PERIOD = 5
-NAMED_ROOT_RAY = {
-    (1, 3): "doubling", (2, 3): "doubling", (1, 7): "rabbit", (2, 7): "rabbit",
-    (3, 7): "airplane", (4, 7): "airplane", (7, 15): "primitive period 4",
-    (8, 15): "primitive period 4", (2, 5): "satellite period 4", (3, 5): "satellite period 4",
-}
+NamedRoots = dict[tuple[int, frozenset[Fraction]], dict[str, Any]]
 
 
 def exact(raw: bytes) -> dict[str, Any]:
@@ -80,6 +79,93 @@ def _floats(node: Any, where: str):
     elif isinstance(node, list):
         for i, value in enumerate(node):
             yield from _floats(value, f"{where}[{i}]")
+
+
+def structure_names(raw: bytes, repository: str) -> NamedRoots:
+    """Read component names from the crosswalk, without interpreting its claims.
+
+    Other declared classes are not component names. Matching uses the whole
+    root-ray set and the declared period; neither a shared ray nor a nearby
+    traced centre is an identification. No conjugate name is inferred.
+    """
+    try:
+        data = json.loads(raw)
+        if not isinstance(data, dict) or data.get("format") != "structure crosswalk 1":
+            raise ValueError("expected format 'structure crosswalk 1'")
+        if data.get("repository") != repository:
+            raise ValueError(f"expected repository {repository!r}")
+        if list(_floats(data, "crosswalk")):
+            raise ValueError("a float reached the exact crosswalk")
+        classes, nodes = data["classes"], data["nodes"]
+        if not isinstance(classes, list) or not isinstance(nodes, list):
+            raise ValueError("classes and nodes must be lists")
+        declared = [c["id"] for c in classes]
+        if any(not isinstance(c, str) or not c for c in declared) or len(set(declared)) != len(declared):
+            raise ValueError("class ids must be unique nonempty strings")
+        if "atlas/hyperbolic-component" not in declared:
+            raise ValueError("the component class is not declared")
+        # Keep the upstream occurrence's literal locator on the actual name
+        # index. It contains no local declarations: all entries come from nodes.
+        NAMED_ROOT_RAY = {}
+        seen: set[str] = set()
+        for node in nodes:
+            if not isinstance(node, dict) or node["class"] not in declared:
+                raise ValueError("a node is in an undeclared class")
+            identifier = node["id"]
+            if not isinstance(identifier, str) or not identifier or identifier in seen:
+                raise ValueError("node ids must be unique nonempty strings")
+            seen.add(identifier)
+            if node["class"] != "atlas/hyperbolic-component":
+                continue
+            key = node["key"]
+            period, angles = key["period"], key["root_angles"]
+            if type(period) is not int or period < 1:
+                raise ValueError(f"{identifier}: period must be a positive integer")
+            if not isinstance(angles, list) or any(not isinstance(a, str) for a in angles):
+                raise ValueError(f"{identifier}: root angles must be rational strings")
+            roots = frozenset(Fraction(a) for a in angles)
+            if len(roots) != len(angles) or len(roots) != (1 if period == 1 else 2):
+                raise ValueError(f"{identifier}: expected distinct complete root angles")
+            if any(not 0 <= a < 1 for a in roots):
+                raise ValueError(f"{identifier}: root angles must lie in [0, 1)")
+            label, aliases = node["label"], node["names"]
+            if not isinstance(label, str) or not label or not isinstance(aliases, list) \
+                    or any(not isinstance(n, str) or not n for n in aliases):
+                raise ValueError(f"{identifier}: expected a label and names")
+            lookup = (period, roots)
+            if lookup in NAMED_ROOT_RAY:
+                raise ValueError("duplicate component root angles")
+            NAMED_ROOT_RAY[lookup] = node
+        if not NAMED_ROOT_RAY:
+            raise ValueError("no component names")
+        return NAMED_ROOT_RAY
+    except (ValueError, KeyError, TypeError, ZeroDivisionError) as err:
+        raise SourceError(f"the structure crosswalk is malformed: {err}") from None
+
+
+def name_components(components: list[dict], tunings: list[dict], names: NamedRoots) -> list[dict]:
+    """Transcribe canonical names and emitted aliases; leave unknown pairs unnamed."""
+    emitted: dict[frozenset[Fraction], str] = {}
+    for row in tunings:
+        roots = frozenset(Fraction(*row[field]) for field in ("lo", "hi"))
+        label = row["component"]
+        if len(roots) != 2 or not isinstance(label, str) or not label:
+            raise SourceError("the dataset's tuning labels need a complete root pair and a name")
+        if roots in emitted and emitted[roots] != label:
+            raise SourceError("the dataset has conflicting tuning labels for one root pair")
+        emitted[roots] = label
+    out = []
+    for component in components:
+        roots = frozenset(Fraction(*ray) for ray in component["rays"])
+        node = names.get((component["period"], roots))
+        alias = emitted.get(roots)
+        label = node["label"] if node else alias
+        aliases = [node["label"], *node["names"]] if node else []
+        if alias:
+            aliases.append(alias)
+        out.append({**component, "name": label, "atlas_id": node["id"] if node else None,
+                    "names": list(dict.fromkeys(aliases))})
+    return out
 
 
 def oracle(checkout: Path) -> ModuleType:
@@ -142,10 +228,8 @@ def traced_components(rd: ModuleType) -> list[dict]:
             entry = found.setdefault(key, {"period": period, "re": round(centre.real, 12),
                                            "im": round(centre.imag, 12), "rays": [], "name": None})
             entry["rays"].append([num, den])
-            if (num, den) in NAMED_ROOT_RAY:
-                entry["name"] = NAMED_ROOT_RAY[(num, den)]
     found[(1, 0.0, 0.0)] = {"period": 1, "re": 0.0, "im": 0.0, "rays": [[0, 1]],
-                            "name": "main cardioid"}
+                            "name": None}
     return sorted(found.values(), key=lambda e: (e["period"], e["re"], e["im"]))
 
 
@@ -208,17 +292,20 @@ def certificates(ie: ModuleType, addresses: list[dict]) -> list[dict]:
 
 
 def assemble(data: dict[str, Any], ie: ModuleType, provenances: tuple[Provenance, ...],
-             rd: ModuleType) -> tuple[str, dict[str, Any]]:
+             rd: ModuleType, names: NamedRoots) -> tuple[str, dict[str, Any]]:
     """The page, and the dataset it embeds: the exact sections untouched, the
     traced ones beside them."""
     misiurewicz = traced_addresses(data["catalogues"])
-    full = {**data, "misiurewicz": misiurewicz, "components": traced_components(rd),
+    full = {**data, "misiurewicz": misiurewicz,
+            "components": name_components(traced_components(rd), data["tunings"], names),
             "tunings": placed_tunings(data["tunings"]), "certificates": certificates(ie, misiurewicz)}
     head, body, script = ((TEMPLATES / f"{part}.html").read_text(encoding="utf-8")
                           for part in ("head", "body", "script"))
     stamp = f"{' · '.join(p.stamp for p in provenances)} · {CAVEAT}"
+    # Upstream labels are text; a '<' must not terminate the inline script.
+    payload = json.dumps(full, separators=(",", ":")).replace("<", "\\u003c")
     page = head + body.replace("__STAMP__", stamp) + \
-        script.replace("__DATA__", json.dumps(full, separators=(",", ":")))
+        script.replace("__DATA__", payload)
     return page, full
 
 
@@ -230,6 +317,12 @@ def build(page: Page, sources: Path, *, dataset: Path | None = None, out: Path =
         return Refused(page.id, f"no checkout of {page.repo} at {checkout}; pass --sources to say where the estate is")
     try:
         ie = oracle(checkout)
+        if len(page.also) != 1:
+            raise SourceError("the atlas needs one registered structure crosswalk")
+        repo, path = page.files()[1]
+        names_raw, names_digest = read_artifact(page.id, repo, path, Path(sources) / repo.split("/")[-1])
+        names = structure_names(names_raw, page.repo)
+        names_provenance = Provenance(repo, path, names_digest)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
 
@@ -267,9 +360,10 @@ def build(page: Page, sources: Path, *, dataset: Path | None = None, out: Path =
                    hashlib.sha256(raw).hexdigest()),
         Provenance(exact_types.pin.repository, f"{EXACT} (vendored at {exact_types.pin.commit[:12]})",
                    exact_types.digest),
+        names_provenance,
     )
     try:
-        html, full = assemble(data, ie, provenances, exact_types.module)
+        html, full = assemble(data, ie, provenances, exact_types.module, names)
     except SourceError as refusal:
         return Refused(page.id, str(refusal))
     except (AttributeError, IndexError, KeyError, TypeError, ValueError, ZeroDivisionError) as err:
