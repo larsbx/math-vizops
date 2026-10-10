@@ -1,0 +1,90 @@
+version = 2
+template = "estate-repository-v2"
+
+[repo]
+id = "math-vizops"
+slug = "larsbx/math-vizops"
+class = "app"
+layer = 3
+band = "STANDARD"
+stage = "candidate"           # written by estate CI only
+inv = []
+default_branch = "main"
+
+[origin]
+decided_by = "proposed"       # agent-authored; the owner adopts it by decision record
+chats = []
+artifacts = []
+
+[[dep]]
+id = "estate-governance"
+rev = "5ea47dec8086eab6a1dad6fd239688d20ea89891"
+pin = "sha256:412a64dea58d709aae21e5a0315b8e7e96488c310a9d999267927ba3d8146a30"   # set by estate-governance tools/pin_estate.py
+
+[[dep]]
+id = "finite-math-kernels"
+rev = "9d27bc4508844e72ffc61acb8ba172f7346707d8"
+pin = "sha256:51907e10fe2ac1e4e67504a30cd7fdc88a2d98a14d890e48fea6d7d9998a2234"   # set by estate-governance tools/pin_estate.py
+
+[exports]
+names = []
+
+[layout]
+status = "transitional"
+
+[principles]
+ordering = ["authority", "domain", "language"]
+empty_silos = "forbidden"
+cross_language_disagreement = "fail_closed"
+generated_surfaces = "derived_only"
+vendor_code = "non_local"
+experimental_code = "non_authoritative"
+
+[[plane]]
+id = "policy"
+target = "policy"
+authority = "governance"
+required = true
+current = ["ESTATE.toml", "AGENTS.md", "CONTRIBUTING.md"]
+
+[[plane]]
+id = "kernel"
+target = "kernel"
+authority = "canonical_executable"
+required = true
+current = ["vizops"]
+
+[[plane]]
+id = "conformance"
+target = "tests"
+authority = "evidence"
+required = true
+current = ["tests"]
+
+[[plane]]
+id = "vendor"
+target = "vendor"
+authority = "pinned_external"
+required = true
+current = ["vendor", "vendored.toml"]
+
+[[plane]]
+id = "docs"
+target = "docs"
+authority = "exposition"
+required = true
+current = ["wiki", "README.md", "ARCHITECTURE.md"]
+
+[[language]]
+name = "Python"
+authority = "canonical"
+roles = ["kernel"]
+acceptance_authority = false
+
+[migration]
+mode = "boundary_first"
+mass_move = false
+next = [
+  "Move wiki/ to docs/wiki/ together with the wiki.yml mirror source path.",
+  "Decide whether the kernel target is the `vizops` package path or a kernel/ wrapper before declaring the layout canonical.",
+]

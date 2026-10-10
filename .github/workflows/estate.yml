@@ -1,0 +1,31 @@
+name: Estate audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Estate audit (pinned public artifact)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dep() { python3 -c 'import sys, tomllib; print(next(d[sys.argv[1]] for d in tomllib.load(open("ESTATE.toml", "rb"))["dep"] if d["id"] == "estate-governance"))' "$1"; }
+          rev=$(dep rev); pin=$(dep pin)
+          test "$rev" = "5ea47dec8086eab6a1dad6fd239688d20ea89891"
+          curl --fail --location --proto '=https' --tlsv1.2 --output /tmp/estate-audit.py \
+            "https://raw.githubusercontent.com/larsbx/estate-governance/$rev/kernel/audit_estate_layout.py"
+          printf '%s  %s\n' "${pin#sha256:}" /tmp/estate-audit.py | sha256sum --check --strict -
+          python3 /tmp/estate-audit.py --root .
