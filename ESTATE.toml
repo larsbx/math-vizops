@@ -79,7 +79,7 @@ current = ["wiki", "README.md", "ARCHITECTURE.md"]
 name = "Python"
 authority = "canonical"
 roles = ["kernel"]
-acceptance_authority = false
+acceptance_authority = true
 
 [migration]
 mode = "boundary_first"

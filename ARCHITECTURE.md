@@ -18,9 +18,16 @@ currently fill them.
 
 ## Authority boundary
 
-Python is the canonical language and declares
-`acceptance_authority = false`: the repository owns no acceptance boundary. `vizops` validates and renders upstream artifacts and refuses malformed ones; it computes no status and authorizes nothing. Nothing here may emit an
-`accepted`, `proved`, `authorized` or deployment verdict.
+Python is the canonical language and holds acceptance authority over one
+boundary: **source acceptance for rendering**. `vizops/sources.py` is its
+single implementation: it accepts a scene's upstream artifact or vendored
+package only when the manifest, location and sha256 pins all agree, and
+otherwise refuses (`SourceError`), never drawing a placeholder.
+
+That acceptance concerns drawing inputs only. A rendered frame remains a
+derived surface that depicts one revision and authorizes nothing about the
+mathematics it shows; claim status stays with the repository that owns the
+artifact.
 
 ## Migration
 
