@@ -4,9 +4,9 @@ template = "estate-repository-v2"
 [repo]
 id = "math-vizops"
 slug = "larsbx/math-vizops"
-class = "app"
+class = "research"
 layer = 3
-band = "STANDARD"
+band = "EXPLORE"
 stage = "candidate"           # written by estate CI only
 inv = []
 default_branch = "main"
