@@ -98,3 +98,13 @@ path = "docs/rauzy-representability-2026-10-08.html"
 builder = "rauzy"
 artifact = "https://claude.ai/artifact/6gdPGTXbt68XLNdQ4KqSbt"
 note = "The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp."
+
+[[page]]
+id = "psc-rauzy-torus"
+title = "PSC Rauzy torus atlas"
+repo = "larsbx/pisot-substitution-conjecture-research"
+path = "evidence/rauzy-torus-2026-10-21/named.jsonl"
+builder = "torus"
+task = "rauzy-torus-named"
+also = ["larsbx/pisot-substitution-conjecture-research:evidence/rauzy-torus-2026-10-21/corpus.jsonl"]
+note = "Points, certified frequency floors and lift profiles are that repository's exact Mojo kernel (psc/rauzy_torus.mojo), replayed by its independent Python oracle; their status there is diagnostic and a lift profile certifies no covering degree. The fold mod 1, the torus embedding and the colour ramp are display aids."

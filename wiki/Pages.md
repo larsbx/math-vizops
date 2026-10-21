@@ -55,4 +55,12 @@ republish it when its sources move.
 
 > The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp.
 
+### PSC Rauzy torus atlas
+
+`python -m vizops page psc-rauzy-torus` — reads [`evidence/rauzy-torus-2026-10-21/named.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/named.jsonl) in `larsbx/pisot-substitution-conjecture-research`, [`evidence/rauzy-torus-2026-10-21/corpus.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/corpus.jsonl) in `larsbx/pisot-substitution-conjecture-research`.
+
+_No still published yet._ Build the page, capture it, and commit `wiki/images/psc-rauzy-torus.png`.
+
+> Points, certified frequency floors and lift profiles are that repository's exact Mojo kernel (psc/rauzy_torus.mojo), replayed by its independent Python oracle; their status there is diagnostic and a lift profile certifies no covering degree. The fold mod 1, the torus embedding and the colour ramp are display aids.
+
 <!-- END generated page gallery -->

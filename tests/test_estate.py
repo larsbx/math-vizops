@@ -17,7 +17,7 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops import bulbs, rauzy
+from vizops import bulbs, rauzy, torus
 from vizops.atlas.build import name_components, oracle, structure_names
 from vizops.sources import load, pages
 from vizops.wake.scene import WakeCycleFigure
@@ -98,3 +98,13 @@ def test_the_real_rauzy_page_carries_its_table_and_gallery():
     text, provenance = rauzy.read(root(), page)
     assert provenance.repo == page.repo and text.count("data-fig=") >= 1
 
+
+
+def test_the_real_rauzy_torus_records_transcribe():
+    """Where the upstream emitter changes shape, this is what fails."""
+    page = PAGES["torus"]
+    checkout_of(page)
+    named, corpus = (torus.read(root(), page, repo, path)[0] for repo, path in page.files())
+    data = torus.transcribe(named, corpus)
+    assert len(data["corpus"]) == 4554
+    assert any(r["name"] == "tribonacci" and r["status"] == "diagnostic" for r in data["named"])
