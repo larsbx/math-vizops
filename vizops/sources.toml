@@ -105,6 +105,7 @@ title = "PSC Rauzy fractals on the 2-torus"
 repo = "larsbx/pisot-substitution-conjecture-research"
 path = "evidence/rauzy-torus-2026-10-21/named.jsonl"
 builder = "torus"
+artifact = "https://claude.ai/artifact/2w18PosvJWmAnVWUiTx69P"
 also = [
   "larsbx/pisot-substitution-conjecture-research:evidence/rauzy-torus-2026-10-21/corpus.jsonl",
   "larsbx/pisot-substitution-conjecture-research:evidence/rauzy-torus-2026-10-21/SHA256SUMS",
