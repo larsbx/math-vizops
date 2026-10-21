@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rauzy Torus Atlas</title>
+<style>
+/* Two themes from one set of tokens. Letter hues are categorical; lift hues
+   step from calm (one lift) to loud (many), and an empty cell is the field. */
+:root {
+  color-scheme: light dark;
+  --bg: #f7f6f2; --panel: #ffffff; --ink: #17171c; --ink-2: #4a4a55; --ink-3: #74747f;
+  --rule: #dcdad3; --field: #eeece6; --grid: #c9c6bd; --accent: #2f5fb3;
+  --l0: #2f6fbf; --l1: #d0632b; --l2: #2f9a5c;
+  --k1: #3b8f86; --k2: #e0a526; --k3: #dd5a35; --k4: #b83a8c; --k5: #5b3aa6;
+  --surface: #c9c6bd;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131318; --panel: #1c1c23; --ink: #ececf1; --ink-2: #b6b6c2; --ink-3: #8a8a96;
+    --rule: #33333d; --field: #24242c; --grid: #3d3d48; --accent: #7fa6ef;
+    --l0: #6fa4ec; --l1: #f08a55; --l2: #5cc78a;
+    --k1: #5fbfb3; --k2: #f0c04a; --k3: #f07a52; --k4: #e06bb6; --k5: #9a7cf0;
+    --surface: #4a4a55;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131318; --panel: #1c1c23; --ink: #ececf1; --ink-2: #b6b6c2; --ink-3: #8a8a96;
+  --rule: #33333d; --field: #24242c; --grid: #3d3d48; --accent: #7fa6ef;
+  --l0: #6fa4ec; --l1: #f08a55; --l2: #5cc78a;
+  --k1: #5fbfb3; --k2: #f0c04a; --k3: #f07a52; --k4: #e06bb6; --k5: #9a7cf0;
+  --surface: #4a4a55;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+header.top { padding: 28px 16px 12px; max-width: 1180px; margin: 0 auto; }
+header.top h1 { margin: 0 0 6px; font-size: clamp(24px, 4.4vw, 36px); line-height: 1.15; text-wrap: balance; }
+header.top p { margin: 0; max-width: 72ch; color: var(--ink-2); }
+.status { display: inline-block; margin-top: 10px; font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  border: 1.5px solid currentColor; border-radius: 4px; padding: 4px 8px; color: var(--k3); }
+.picker { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(6px); border-bottom: 1px solid var(--rule); }
+.picker > div { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.picker label { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1.5px solid var(--ink-2); border-radius: 6px; overflow: hidden; }
+.seg button { font: 600 13px var(--sans); background: transparent; color: var(--ink); border: 0; padding: 6px 11px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:disabled { color: var(--ink-3); cursor: not-allowed; text-decoration: line-through; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.meta { font: 13px var(--mono); color: var(--ink-2); overflow-wrap: anywhere; }
+main { max-width: 1180px; margin: 0 auto; padding: 8px 16px 40px; display: grid; gap: 28px; }
+section.view { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px;
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
+section.view > h2 { grid-column: 1 / -1; margin: 0; font-size: clamp(19px, 2.6vw, 24px); line-height: 1.2; }
+section.view > h2 small { display: block; font: 500 12px var(--mono); color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+canvas { display: block; width: 100%; height: auto; background: var(--field); border-radius: 6px; touch-action: none; }
+.notes { display: grid; gap: 10px; min-width: 0; }
+.notes p { margin: 0; }
+.eq { font: 13.5px var(--mono); background: var(--field); border-left: 3px solid var(--accent); padding: 8px 10px; overflow-x: auto; white-space: pre; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 13px var(--mono); color: var(--ink-2); }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.readout { font: 13px var(--mono); background: var(--field); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px;
+  font-variant-numeric: tabular-nums; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.warn { border-left: 3px solid var(--k3); padding: 6px 10px; background: color-mix(in srgb, var(--k3) 9%, transparent); }
+.tooltip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font: 12.5px var(--mono);
+  padding: 6px 8px; border-radius: 4px; z-index: 20; white-space: pre; }
+footer { border-top: 1px solid var(--rule); }
+footer > div { max-width: 1180px; margin: 0 auto; padding: 18px 16px 32px; font-size: 13.5px; color: var(--ink-2); display: grid; gap: 6px; }
+footer ul { margin: 0; padding-left: 18px; }
+footer code { font: 12.5px var(--mono); overflow-wrap: anywhere; }
+@media (max-width: 820px) { section.view { grid-template-columns: minmax(0, 1fr); padding: 14px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Rauzy fractals on the 2-torus</h1>
+  <p>For a unimodular alphabet-3 Pisot substitution, projecting the stepped line along the frequency vector onto
+     <i>H</i> = {Σx<sub>i</sub> = 0} gives the discrepancy vectors <i>D<sub>n</sub></i> = <i>p<sub>n</sub></i> − <i>n f</i>.
+     Mod <i>H</i><sub>ℤ</sub> ≅ ℤ², they are the orbit of the toral rotation by −(<i>f</i><sub>0</sub>, <i>f</i><sub>1</sub>).
+     Every number below is the evidence bundle's; the page draws it.</p>
+  <span class="status">diagnostic · a lift profile certifies no covering degree</span>
+</header>
+
+<nav class="picker" aria-label="Specimen">
+  <div>
+    <label id="pick-label">Specimen</label>
+    <div class="seg" id="pick" role="group" aria-labelledby="pick-label"></div>
+    <span class="meta" id="pick-meta"></span>
+  </div>
+</nav>
+
+<main>
+  <section class="view">
+    <h2><small>1 · in H</small>The Rauzy fractal, coloured by subtile</h2>
+    <canvas id="plane" width="720" height="560" aria-label="Fractal points in H-coordinates"></canvas>
+    <div class="notes">
+      <p>Each point is one discrepancy vector, drawn at <code>(x, y)/2<sup>coord_bits</sup></code> in the coordinates
+         (<i>D</i><sub>n0</sub>, <i>D</i><sub>n1</sub>), and coloured by the letter that follows it: the subtiles <i>R</i>(0), <i>R</i>(1), <i>R</i>(2).</p>
+      <div class="legend" id="letters"></div>
+      <p>The faint lines are the lattice ℤ². The picture is a linear image of the contracting-plane picture,
+         so lengths and angles in it carry no meaning.</p>
+      <div class="readout" id="plane-readout"></div>
+    </div>
+  </section>
+
+  <section class="view">
+    <h2><small>2 · on T²</small>Its fold onto the torus, coloured by lift count</h2>
+    <canvas id="fold" width="640" height="640" aria-label="Lift profile on the torus grid"></canvas>
+    <div class="notes">
+      <p>Each cell of the <span id="fold-grid"></span> grid on <i>T</i>² = <i>H</i>/<i>H</i><sub>ℤ</sub> is coloured by the number of
+         distinct ℤ²-lifts the sample meets there, read from <code>lifts[cx·G + cy]</code>. The dots are the same points folded mod ℤ².</p>
+      <div class="eq">cell (cx, cy) = (⌊G·frac D₀⌋, ⌊G·frac D₁⌋)
+assigned only when the whole enclosure lies in it</div>
+      <div class="legend" id="fold-legend"></div>
+      <p class="warn">Covering degree 1 is a theorem for Tribonacci, and its profile still shows boundary cells with two or three lifts.
+         A finite sample at one resolution neither certifies nor refutes covering degree 1.</p>
+    </div>
+  </section>
+
+  <section class="view">
+    <h2><small>3 · embedded</small>The same fold on a torus surface</h2>
+    <canvas id="torus" width="720" height="560" aria-label="Lift profile on an embedded torus; drag to rotate"></canvas>
+    <div class="notes">
+      <p>The cell (<i>u</i>, <i>v</i>) ∈ [0, 1)² sits at
+         ((<i>R</i> + <i>r</i> cos 2π<i>v</i>) cos 2π<i>u</i>, (<i>R</i> + <i>r</i> cos 2π<i>v</i>) sin 2π<i>u</i>, <i>r</i> sin 2π<i>v</i>).
+         The embedding is a display aid; the colours are the lift profile of view 2. Drag to turn it.</p>
+      <div class="legend" id="torus-legend"></div>
+    </div>
+  </section>
+
+  <section class="view">
+    <h2><small>4 · the corpus</small>Rotation vectors of every unimodular specimen</h2>
+    <canvas id="atlas" width="640" height="640" aria-label="Corpus atlas of rotation vectors on the torus"></canvas>
+    <div class="notes">
+      <p>Each dot is one specimen of the standing corpus at ρ<sub>σ</sub> = −(<i>F</i><sub>0</sub>, <i>F</i><sub>1</sub>)/2<sup>scale_bits</sup> mod ℤ²,
+         from the certified floors <i>F</i><sub>i</sub> = ⌊2<sup>scale_bits</sup> <i>f</i><sub>i</sub>⌋. Specimens with the same frequencies coincide.</p>
+      <div>
+        <label class="meta" id="colour-label">Colour by</label>
+        <div class="seg" id="colour" role="group" aria-labelledby="colour-label">
+          <button aria-pressed="true" data-mode="regime">regime</button>
+          <button aria-pressed="false" data-mode="max">max lift</button>
+          <button aria-pressed="false" data-mode="share">one-lift share</button>
+        </div>
+      </div>
+      <div class="legend" id="atlas-legend"></div>
+      <div class="readout" id="atlas-readout"></div>
+      <p class="warn">A low one-lift share is resolution-limited: adding points only finds more lifts, and refining the grid is bounded
+         by point density. It is not evidence of covering degree ≥ 2.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>
+    <div>Sources:</div>
+    <ul>__SOURCES__</ul>
+    <div><code>__CAVEAT__</code></div>
+    <div>Display aids drawn here: the scaling by 2<sup>−coord_bits</sup>, the fold mod ℤ², the torus embedding, the rotation vector
+      from the certified floors, and the one-lift share as a ratio of the bundle's own counts.</div>
+  </div>
+</footer>
+<div class="tooltip" id="tip" hidden></div>
+
+<script>
+const DATA = __DATA__;
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const LETTER = () => ["--l0", "--l1", "--l2"].map(css);
+const LIFT = k => css(`--k${Math.min(k, 5)}`);
+const mod1 = (v, m) => ((v % m) + m) % m / m;
+const fmt = n => n.toLocaleString("en-US");
+
+function fit(canvas) {
+  canvas._aspect = canvas._aspect || canvas.height / canvas.width;
+  const ratio = window.devicePixelRatio || 1, w = canvas.clientWidth, h = w * canvas._aspect;
+  if (canvas._w !== w || canvas._r !== ratio) {
+    canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+    canvas._w = w; canvas._r = ratio;
+  }
+  const g = canvas.getContext("2d");
+  g.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return [g, w, h];
+}
+
+function legend(el, items) {
+  el.innerHTML = items.map(([colour, label]) => `<span><i style="background:${colour}"></i>${label}</span>`).join("");
+}
+
+const shown = DATA.named.filter(r => r.status === "diagnostic");
+let current = shown[0];
+
+function picker() {
+  const seg = document.getElementById("pick");
+  seg.innerHTML = "";
+  for (const r of DATA.named) {
+    const b = document.createElement("button");
+    b.textContent = r.name.replace(/_/g, " ");
+    b.title = `${r.sigma.join(" / ")} · ${r.regime}` + (r.reason ? ` · refused: ${r.reason}` : "");
+    b.disabled = r.status !== "diagnostic";
+    b.setAttribute("aria-pressed", String(r === current));
+    b.onclick = () => { current = r; picker(); draw(); };
+    seg.append(b);
+  }
+  const refused = DATA.named.filter(r => r.status !== "diagnostic");
+  document.getElementById("pick-meta").textContent =
+    `σ = ${current.sigma.map((w, i) => `${i}→${w}`).join(", ")} · ${current.regime}` +
+    (refused.length ? ` · refused: ${refused.map(r => r.name.replace(/_/g, " ")).join(", ")} (${refused[0].reason})` : "");
+}
+
+function drawPlane() {
+  const canvas = document.getElementById("plane"), [g, w, h] = fit(canvas), r = current, s = 2 ** r.coord_bits;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < r.points; i++) {
+    x0 = Math.min(x0, r.x[i]); x1 = Math.max(x1, r.x[i]); y0 = Math.min(y0, r.y[i]); y1 = Math.max(y1, r.y[i]);
+  }
+  const pad = 18, span = Math.max((x1 - x0) / s, (y1 - y0) / s) || 1, k = Math.min(w - 2 * pad, h - 2 * pad) / span;
+  const cx = (x0 + x1) / 2 / s, cy = (y0 + y1) / 2 / s;
+  const X = v => w / 2 + (v - cx) * k, Y = v => h / 2 - (v - cy) * k;
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = css("--grid"); g.lineWidth = 1;
+  for (let a = Math.floor(cx - w / 2 / k); a <= cx + w / 2 / k; a++) { g.beginPath(); g.moveTo(X(a), 0); g.lineTo(X(a), h); g.stroke(); }
+  for (let b = Math.floor(cy - h / 2 / k); b <= cy + h / 2 / k; b++) { g.beginPath(); g.moveTo(0, Y(b)); g.lineTo(w, Y(b)); g.stroke(); }
+  const hues = LETTER(), dot = Math.max(1.6, Math.min(3, 180 / Math.sqrt(r.points)));
+  for (let i = 0; i < r.points; i++) { g.fillStyle = hues[r.letter[i]]; g.fillRect(X(r.x[i] / s) - dot / 2, Y(r.y[i] / s) - dot / 2, dot, dot); }
+  const counts = [0, 0, 0]; r.letter.forEach(l => counts[l]++);
+  legend(document.getElementById("letters"), hues.map((c, i) => [c, `R(${i}) · ${fmt(counts[i])} points`]));
+  document.getElementById("plane-readout").textContent =
+    `points       ${fmt(r.points)}\nfreq_floor   ${r.freq_floor.join("  ")}\nscale_bits   ${r.scale_bits}   coord_bits ${r.coord_bits}\nundecided    ${r.undecided}`;
+}
+
+function profileLegend(r) {
+  return [[css("--field"), "no sample"], ...r.lift_keys.map((key, i) => [LIFT(key), `${key} lift${key > 1 ? "s" : ""} · ${fmt(r.lift_counts[i])} cells`])];
+}
+
+function drawFold() {
+  const canvas = document.getElementById("fold"), [g, w] = fit(canvas), r = current, G = r.grid, c = w / G, s = 2 ** r.coord_bits;
+  g.clearRect(0, 0, w, w);
+  for (let cx = 0; cx < G; cx++) for (let cy = 0; cy < G; cy++) {
+    const k = r.lifts[cx * G + cy];
+    if (k) { g.fillStyle = LIFT(k); g.fillRect(cx * c, w - (cy + 1) * c, Math.ceil(c), Math.ceil(c)); }
+  }
+  g.fillStyle = css("--ink"); g.globalAlpha = 0.35;
+  for (let i = 0; i < r.points; i++) g.fillRect(mod1(r.x[i], s) * w - 0.6, w - mod1(r.y[i], s) * w - 0.6, 1.2, 1.2);
+  g.globalAlpha = 1;
+  document.getElementById("fold-grid").textContent = `${G} × ${G}`;
+  legend(document.getElementById("fold-legend"), profileLegend(r));
+}
+
+const view = { yaw: -0.6, pitch: 0.95 };
+function drawTorus() {
+  const canvas = document.getElementById("torus"), [g, w, h] = fit(canvas), r = current, G = r.grid;
+  const R = 1, rr = 0.42, k = Math.min(w, h) / 2 / (R + rr) * 0.92, tau = 2 * Math.PI;
+  const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
+  const turn = ([x, y, z]) => { const x1 = cy * x - sy * y, y1 = sy * x + cy * y; return [x1, cp * y1 - sp * z, sp * y1 + cp * z]; };
+  const at = (u, v) => { const ring = R + rr * Math.cos(tau * v); return turn([ring * Math.cos(tau * u), ring * Math.sin(tau * u), rr * Math.sin(tau * v)]); };
+  const normal = (u, v) => turn([Math.cos(tau * v) * Math.cos(tau * u), Math.cos(tau * v) * Math.sin(tau * u), Math.sin(tau * v)]);
+  const quads = [];
+  for (let a = 0; a < G; a++) for (let b = 0; b < G; b++) {
+    const corners = [at(a / G, b / G), at((a + 1) / G, b / G), at((a + 1) / G, (b + 1) / G), at(a / G, (b + 1) / G)];
+    const n = normal((a + 0.5) / G, (b + 0.5) / G);
+    quads.push([corners.reduce((d, p) => d + p[1], 0), corners, n, r.lifts[a * G + b]]);
+  }
+  quads.sort((p, q) => q[0] - p[0]);
+  g.clearRect(0, 0, w, h);
+  const field = css("--surface"), light = [0.35, -0.55, 0.76];
+  for (const [, corners, n, lifts] of quads) {
+    const shade = 0.45 + 0.55 * Math.abs(n[0] * light[0] + n[1] * light[1] + n[2] * light[2]);
+    g.beginPath();
+    corners.forEach(([x, , z], i) => g[i ? "lineTo" : "moveTo"](w / 2 + x * k, h / 2 - z * k));
+    g.closePath();
+    g.fillStyle = lifts ? LIFT(lifts) : field; g.globalAlpha = 1; g.fill();
+    g.fillStyle = "#000"; g.globalAlpha = 1 - shade; g.fill();
+    g.globalAlpha = 1;
+  }
+  legend(document.getElementById("torus-legend"), profileLegend(r));
+}
+
+let mode = "regime";
+const REGIME = { "unimodular-complex": "--l0", "unimodular-real": "--l1" };
+const atlasPoints = DATA.corpus.map(r => {
+  const S = 2 ** r.scale_bits, one = r.lift_keys[0] === 1 ? r.lift_counts[0] : 0;
+  return { r, u: mod1(-r.freq_floor[0], S), v: mod1(-r.freq_floor[1], S), max: r.lift_keys[r.lift_keys.length - 1], share: one / r.occupied };
+});
+const shareColour = t => `color-mix(in srgb, ${css("--k1")} ${Math.round(t * 100)}%, ${css("--k4")})`;
+
+function drawAtlas() {
+  const canvas = document.getElementById("atlas"), [g, w] = fit(canvas), pad = 8, side = w - 2 * pad;
+  g.clearRect(0, 0, w, w);
+  g.strokeStyle = css("--grid"); g.strokeRect(pad, pad, side, side);
+  const colour = p => mode === "regime" ? css(REGIME[p.r.regime] || "--ink-3") : mode === "max" ? LIFT(p.max) : shareColour(p.share);
+  for (const p of atlasPoints) { g.fillStyle = colour(p); g.beginPath(); g.arc(pad + p.u * side, pad + (1 - p.v) * side, 2.6, 0, 7); g.fill(); }
+  const regimes = [...new Set(DATA.corpus.map(r => r.regime))].sort();
+  const items = mode === "regime" ? regimes.map(x => [css(REGIME[x] || "--ink-3"), `${x} · ${fmt(DATA.corpus.filter(r => r.regime === x).length)}`])
+    : mode === "max" ? [...new Set(atlasPoints.map(p => p.max))].sort((a, b) => a - b).map(m => [LIFT(m), `max ${m} · ${fmt(atlasPoints.filter(p => p.max === m).length)}`])
+    : [[shareColour(0), "share 0"], [shareColour(0.5), "0.5"], [shareColour(1), "1"]];
+  legend(document.getElementById("atlas-legend"), items);
+  const shares = atlasPoints.map(p => p.share).sort((a, b) => a - b);
+  document.getElementById("atlas-readout").textContent =
+    `drawn        ${fmt(DATA.corpus.length)} diagnostic specimens\nrefused      ${fmt(DATA.refused.length)}` +
+    (DATA.refused.length ? ` (${[...new Set(DATA.refused.map(r => r.reason))].join("; ")})` : "") +
+    `\none-lift     min ${shares[0].toFixed(4)}  median ${shares[Math.floor((shares.length - 1) / 2)].toFixed(4)}  max ${shares[shares.length - 1].toFixed(4)}` +
+    `\n\nhover a dot for its record`;
+}
+
+function atlasHover(event) {
+  const canvas = document.getElementById("atlas"), box = canvas.getBoundingClientRect(), pad = 8, side = box.width - 2 * pad;
+  const u = (event.clientX - box.left - pad) / side, v = 1 - (event.clientY - box.top - pad) / side;
+  const near = atlasPoints.filter(p => Math.hypot(p.u - u, p.v - v) * side < 6);
+  const tip = document.getElementById("tip");
+  if (!near.length) { tip.hidden = true; return; }
+  const lines = near.slice(0, 6).map(({ r }) =>
+    `#${r.index}  ${r.sigma.join("/")}  ${r.regime}\n  lifts ${r.lift_keys.map((k, i) => `${k}:${r.lift_counts[i]}`).join(" ")}  of ${r.occupied} on ${r.grid}²`);
+  if (near.length > 6) lines.push(`… ${near.length - 6} more here`);
+  tip.textContent = `ρ ≈ (${near[0].u.toFixed(4)}, ${near[0].v.toFixed(4)})\n` + lines.join("\n");
+  tip.hidden = false;
+  tip.style.left = Math.min(event.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
+  tip.style.top = Math.min(event.clientY + 14, innerHeight - tip.offsetHeight - 8) + "px";
+}
+
+function draw() { drawPlane(); drawFold(); drawTorus(); drawAtlas(); }
+
+document.getElementById("colour").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  mode = b.dataset.mode;
+  for (const x of e.currentTarget.children) x.setAttribute("aria-pressed", String(x === b));
+  drawAtlas();
+});
+const atlas = document.getElementById("atlas");
+atlas.addEventListener("pointermove", atlasHover);
+atlas.addEventListener("pointerleave", () => { document.getElementById("tip").hidden = true; });
+
+const torus = document.getElementById("torus");
+let drag = null;
+torus.addEventListener("pointerdown", e => { drag = [e.clientX, e.clientY]; torus.setPointerCapture(e.pointerId); });
+torus.addEventListener("pointermove", e => {
+  if (!drag) return;
+  view.yaw += (e.clientX - drag[0]) * 0.01;
+  view.pitch = Math.max(0.05, Math.min(Math.PI - 0.05, view.pitch + (e.clientY - drag[1]) * 0.01));
+  drag = [e.clientX, e.clientY];
+  requestAnimationFrame(drawTorus);
+});
+torus.addEventListener("pointerup", () => { drag = null; });
+
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+let pending = 0;
+addEventListener("resize", () => { cancelAnimationFrame(pending); pending = requestAnimationFrame(draw); });
+picker();
+draw();
+</script>
+</body>
+</html>

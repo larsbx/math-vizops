@@ -40,7 +40,7 @@ or wherever `--sources` / `$VIZOPS_SOURCES` points.
 
 ## Pages
 
-Four surfaces are not manim scenes but self-contained HTML pages, each declared
+Five surfaces are not manim scenes but self-contained HTML pages, each declared
 as a `[[page]]` in `sources.toml` and built into `out/<id>.html`, never
 committed:
 
@@ -50,6 +50,7 @@ python -m vizops page mandelbrot-atlas --dataset d.json   # the atlas from saved
 python -m vizops page wake-to-mandelbrot
 python -m vizops page bulbs-and-ford-circles
 python -m vizops page psc-rauzy-representability
+python -m vizops page psc-rauzy-torus
 ```
 
 * **`mandelbrot-atlas`** — the ray address atlas for
@@ -94,6 +95,18 @@ python -m vizops page psc-rauzy-representability
   and `vizops/rauzy/build.py` adds only the stamp. A file that is missing, not
   HTML, or without its claim table or figure gallery is refused. See
   [PSC Rauzy representability](#psc-rauzy-representability) below.
+
+* **`psc-rauzy-torus`** — pisot-substitution-conjecture-research's Rauzy torus
+  evidence bundle (`evidence/rauzy-torus-2026-10-21/`), in four views: the
+  fractal in `H`-coordinates coloured by subtile, its fold onto `T²` coloured
+  by lift count, the same fold on an embedded torus, and the corpus atlas of
+  rotation vectors `ρ = −(f₀, f₁) mod ℤ²`. The named records and the 4554
+  corpus summaries are transcribed field for field, and each record is checked
+  only against what the bundle says about itself (schema, lengths, a lift
+  histogram that agrees with its cells and occupancy). The scaling, the fold,
+  the embedding and `ρ` from the certified floors are display aids. The bundle
+  is diagnostic upstream and the page says so: a lift profile certifies no
+  covering degree.
 
 A page carries each source's stamp and the same caveat as a frame.
 
@@ -276,6 +289,7 @@ to fold the tail at the source or to facet the figure.
 | `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 | `vizops/rauzy/build.py` | The Rauzy representability page: the upstream HTML verbatim, plus its stamp. |
+| `vizops/torus/build.py` | The Rauzy torus page: the bundle's records transcribed, never recomputed. |
 
 <!-- END generated module table -->
 

@@ -17,7 +17,7 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops import bulbs, rauzy
+from vizops import bulbs, rauzy, torus
 from vizops.atlas.build import name_components, oracle, structure_names
 from vizops.sources import load, pages
 from vizops.wake.scene import WakeCycleFigure
@@ -98,3 +98,15 @@ def test_the_real_rauzy_page_carries_its_table_and_gallery():
     text, provenance = rauzy.read(root(), page)
     assert provenance.repo == page.repo and text.count("data-fig=") >= 1
 
+
+def test_the_real_torus_bundle_transcribes():
+    """Its own summary.txt is the oracle: 2628 drawn, 1926 refused, and
+    Tribonacci's 64-grid profile 1:3957 2:47 3:1."""
+    page = PAGES["torus"]
+    checkout_of(page)
+    texts, stamps = torus.read(root(), page)
+    data = torus.transcribe(*texts)
+    assert [s.repo for s in stamps] == [page.repo, page.repo]
+    assert (len(data["corpus"]), len(data["refused"])) == (2628, 1926)
+    tribonacci = next(r for r in data["named"] if r["name"] == "tribonacci")
+    assert (tribonacci["grid"], tribonacci["lift_keys"], tribonacci["lift_counts"]) == (64, [1, 2, 3], [3957, 47, 1])
