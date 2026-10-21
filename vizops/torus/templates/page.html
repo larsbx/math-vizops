@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rauzy Fractals on the Torus</title>
+<style>
+/* One dark surface, the manim frames' own (vizops/palette.py). Single theme by choice:
+   the subtile and regime hues are validated against this surface and no other. */
+:root {
+  color-scheme: dark;
+  --surface: #1a1a19;
+  --panel: #232321;
+  --ink: #f4f3f0;
+  --muted: #8f8d87;
+  --rule: #4d4c47;
+  --accent: #d95926;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--surface); color: var(--ink); }
+body { font: 15px/1.55 var(--body); }
+header.top { padding: 28px 16px 18px; max-width: 1180px; margin: 0 auto; }
+header.top h1 { font-size: clamp(26px, 5vw, 40px); line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
+header.top p { margin: 0; max-width: 70ch; color: #d6d4cf; }
+.banner { margin: 14px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--panel); font-size: 14px; max-width: 80ch; }
+.banner b { color: var(--accent); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; margin-right: 6px; }
+.picker { position: sticky; top: 0; z-index: 5; background: rgba(26,26,25,.94); border-block: 1px solid var(--rule); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: center; font-family: var(--mono); font-size: 13px; }
+.picker select { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 4px 8px; }
+.picker .meta { color: var(--muted); }
+main { max-width: 1180px; margin: 0 auto; padding: 0 16px 40px; display: grid; gap: 30px; }
+section { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px 24px; align-items: start; padding-top: 22px; }
+section > h2 { grid-column: 1 / -1; margin: 0; font-size: clamp(20px, 3vw, 26px); border-bottom: 1px solid var(--rule); padding-bottom: 6px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+section > h2 .no { font: 12px var(--mono); color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.stage { display: grid; gap: 8px; min-width: 0; }
+canvas { display: block; width: 100%; height: auto; background: #121211; border: 1px solid var(--rule); border-radius: 3px; touch-action: none; }
+.notes { display: grid; gap: 10px; min-width: 0; }
+.notes p { margin: 0; max-width: 62ch; }
+.eq { font: 13.5px var(--mono); background: var(--panel); border-left: 3px solid var(--rule); padding: 8px 10px; overflow-x: auto; white-space: pre; }
+.readout { font: 13px var(--mono); background: var(--panel); border-radius: 3px; padding: 10px 12px; display: grid; gap: 3px; font-variant-numeric: tabular-nums; overflow-x: auto; }
+.readout b { color: var(--muted); font-weight: 400; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 13px var(--mono); align-items: center; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+.legend label { cursor: pointer; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font: 13px var(--mono); color: var(--muted); }
+.controls input { accent-color: var(--accent); }
+button { font: 13px var(--mono); background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tooltip { position: fixed; pointer-events: none; background: #000; color: var(--ink); font: 12.5px var(--mono); padding: 6px 8px; border: 1px solid var(--rule); border-radius: 3px; z-index: 20; white-space: pre; }
+footer { border-top: 1px solid var(--rule); padding: 18px 16px 30px; font-size: 13px; color: var(--muted); }
+footer div { max-width: 1180px; margin: 0 auto; display: grid; gap: 6px; }
+footer ul { margin: 0; padding-left: 18px; }
+footer code { font: 12px var(--mono); color: var(--ink); word-break: break-all; }
+@media (max-width: 820px) { section { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Rauzy fractals on the 2-torus</h1>
+  <p>For a unimodular Pisot substitution σ on {0, 1, 2}, project the stepped line of its fixed point along
+    the expanding direction onto the plane H = {x₀ + x₁ + x₂ = 0}. The images are the discrepancy vectors
+    D<sub>n</sub> = p<sub>n</sub> − n·f, and modulo the lattice H<sub>ℤ</sub> they are the orbit of the toral
+    rotation by −(f₀, f₁). Every number below is the research repository's exact kernel output.</p>
+  <p class="banner"><b>diagnostic</b>A lift profile certifies no covering degree: a finite sample on one grid
+    sees two or three lifts on boundary cells even for Tribonacci, whose covering degree is 1 by theorem, and
+    can miss lifts in cells it has not visited. Nothing here is a balanced-pair or coincidence certificate.</p>
+  <p class="banner" id="controlsNote" hidden><b>refused</b><span></span></p>
+</header>
+
+<div class="picker">
+  <label for="pick">specimen</label>
+  <select id="pick"></select>
+  <span class="meta" id="pickMeta"></span>
+</div>
+
+<main>
+  <section id="plane">
+    <h2><span class="no">1</span>The fractal in H</h2>
+    <div class="stage">
+      <canvas id="cPlane" width="720" height="560" role="img" aria-label="Rauzy fractal points in H coordinates, coloured by subtile"></canvas>
+      <div class="legend" id="letterKey"></div>
+      <div class="controls"><label><input type="checkbox" id="showLattice" checked> lattice H<sub>ℤ</sub></label></div>
+    </div>
+    <div class="notes">
+      <p>Each point is one prefix of the fixed point, at the floored coordinates the bundle carries; its colour is
+        the next letter, so the three colours are the subtiles R(0), R(1), R(2).</p>
+      <div class="eq">x, y = ⌊2¹⁶ · hi_i / 2⁴⁰⌋,  2⁴⁰·D_ni ∈ [hi_i − n, hi_i]</div>
+      <p>Coordinates are (D₀, D₁) in the basis e₀ − e₂, e₁ − e₂ of H<sub>ℤ</sub>. This is a linear image of the
+        contracting-plane picture, so lengths and angles in it mean nothing; the dashed lines are the lattice the
+        next view folds by.</p>
+      <div class="readout" id="planeOut"></div>
+    </div>
+  </section>
+
+  <section id="fold">
+    <h2><span class="no">2</span>Folded onto T² = H / H<sub>ℤ</sub></h2>
+    <div class="stage">
+      <canvas id="cFold" width="640" height="640" tabindex="0" role="img" aria-label="Grid of the torus coloured by the number of lifts"></canvas>
+      <div class="legend" id="liftKey"></div>
+      <div class="controls"><label><input type="checkbox" id="showPoints"> folded points</label></div>
+    </div>
+    <div class="notes">
+      <p>Each cell of the G × G grid is coloured by the number of distinct ℤ²-lifts of it that the sample meets,
+        as the bundle records it, cell for cell. A covering of degree 1 would show one lift almost everywhere;
+        the cells with more sit on tile boundaries at this resolution.</p>
+      <div class="eq">lifts[cx·G + cy],  cx = ⌊D₀ mod 1 · G⌋,  cy = ⌊D₁ mod 1 · G⌋</div>
+      <p>The folded points are this page's display arithmetic, (x mod 2¹⁶)/2¹⁶; the bundle assigns a point to a
+        cell only when its whole enclosure lies inside it, and counts the rest as undecided.</p>
+      <div class="readout" id="foldOut"></div>
+    </div>
+  </section>
+
+  <section id="surface">
+    <h2><span class="no">3</span>The same fold, on a torus</h2>
+    <div class="stage">
+      <canvas id="cTorus" width="720" height="520" tabindex="0" role="img" aria-label="Torus surface coloured by lift count; drag or use arrow keys to turn it"></canvas>
+      <div class="controls"><span>drag, or arrow keys, to turn</span><button id="resetTorus" type="button">reset</button></div>
+    </div>
+    <div class="notes">
+      <p>The grid of view 2, wrapped onto a torus in space: D₀ mod 1 runs around the hole, D₁ mod 1 around the
+        tube. The embedding and the shading are display aids; only the cell colours carry data.</p>
+      <div class="eq">(u, v) ↦ ((R + r cos 2πv) cos 2πu, (R + r cos 2πv) sin 2πu, r sin 2πv)</div>
+    </div>
+  </section>
+
+  <section id="atlas">
+    <h2><span class="no">4</span>The corpus, by letter frequency</h2>
+    <div class="stage">
+      <canvas id="cAtlas" width="640" height="590" tabindex="0" role="img" aria-label="Ternary plot of the corpus specimens by their three letter frequencies"></canvas>
+      <div class="legend" id="regimeKey"></div>
+    </div>
+    <div class="notes">
+      <p>The unimodular specimens of the standing corpus, placed by their three letter frequencies
+        (f₀, f₁, f₂), which sum to 1: each corner is one letter, and a specimen sits nearer a corner the more often
+        its fixed point uses that letter. Colour is the regime, as the bundle names it. Specimens with the same
+        frequency floors share a marker, its area proportional to their number. Hover or tap one for its specimens
+        and their lift profiles, copied as written.</p>
+      <div class="eq">F_i = ⌊2⁴⁰ f_i⌋,  placed at F_i / (F₀ + F₁ + F₂)</div>
+      <p>The rotation of view 2 is ρ<sub>σ</sub> = −(f₀, f₁) mod ℤ², so this triangle is also a chart of the
+        rotations; the placement is display arithmetic on the certified floors, off by at most 3 · 2⁻⁴⁰.</p>
+      <p id="refusedNote"></p>
+      <div class="readout" id="atlasOut">hover a point</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>
+    <span>Sources, at the digests this page was built from:</span>
+    <ul>__SOURCES__</ul>
+    <span>__CAVEAT__</span>
+  </div>
+</footer>
+<div class="tooltip" id="tip" hidden></div>
+
+<script>
+const DATA = __DATA__;
+const $ = (id) => document.getElementById(id);
+const tip = $("tip");
+const RAMP = ["#2f5f8f", "#3f9a8a", "#a7c957", "#f2c14e", "#f08a4b", "#e05a6a"];
+const EMPTY = "#121211";
+const liftHue = (k) => (k ? RAMP[Math.min(k, RAMP.length) - 1] : EMPTY);
+const SCALE = 2 ** (DATA.scale_bits || 40);
+const fmt = (n) => n.toLocaleString("en-US");
+const profileText = (p) => p.map(([k, c]) => `${k}:${c}`).join(" ");
+const mod = (a, m) => ((a % m) + m) % m;
+
+function fit(canvas) {
+  const ratio = window.devicePixelRatio || 1;
+  canvas.dataset.aspect ||= canvas.height / canvas.width;
+  const w = canvas.clientWidth, h = Math.round(w * canvas.dataset.aspect);
+  canvas.width = Math.round(w * ratio);
+  canvas.height = Math.round(h * ratio);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return { ctx, w, h };
+}
+
+function showTip(e, text) { tip.hidden = false; tip.textContent = text; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; }
+function hideTip() { tip.hidden = true; }
+
+/* ---------- picker ---------- */
+const pick = $("pick");
+DATA.specimens.forEach((s, i) => pick.add(new Option(`${s.name} · ${s.sigma}`, i)));
+if (DATA.controls.length) {
+  $("controlsNote").hidden = false;
+  $("controlsNote").querySelector("span").textContent = DATA.controls.map((c) => `${c.name} (${c.sigma}, ${c.regime}): ${c.reason}`).join("; ");
+}
+let S = DATA.specimens[0];
+
+/* ---------- 1: the plane ---------- */
+$("letterKey").innerHTML = DATA.hues.letters.map((h, a) => `<span><i style="background:${h}"></i>subtile ${a}</span>`).join("");
+function drawPlane() {
+  const { ctx, w, h } = fit($("cPlane"));
+  const unit = 2 ** S.coord_bits;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < S.points; i++) { x0 = Math.min(x0, S.x[i]); x1 = Math.max(x1, S.x[i]); y0 = Math.min(y0, S.y[i]); y1 = Math.max(y1, S.y[i]); }
+  const pad = 18, k = Math.min((w - 2 * pad) / (x1 - x0 || 1), (h - 2 * pad) / (y1 - y0 || 1));
+  const ox = (w - k * (x1 - x0)) / 2, oy = (h - k * (y1 - y0)) / 2;
+  const px = (x) => ox + k * (x - x0), py = (y) => h - oy - k * (y - y0);
+  ctx.clearRect(0, 0, w, h);
+  if ($("showLattice").checked) {
+    ctx.save(); ctx.strokeStyle = "#4d4c47"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    for (let g = Math.ceil(x0 / unit); g <= Math.floor(x1 / unit); g++) { ctx.beginPath(); ctx.moveTo(px(g * unit), 0); ctx.lineTo(px(g * unit), h); ctx.stroke(); }
+    for (let g = Math.ceil(y0 / unit); g <= Math.floor(y1 / unit); g++) { ctx.beginPath(); ctx.moveTo(0, py(g * unit)); ctx.lineTo(w, py(g * unit)); ctx.stroke(); }
+    ctx.restore();
+  }
+  const r = Math.max(1, Math.min(2, w / 360));
+  for (let i = 0; i < S.points; i++) { ctx.fillStyle = DATA.hues.letters[S.letter[i]]; ctx.fillRect(px(S.x[i]) - r / 2, py(S.y[i]) - r / 2, r, r); }
+  $("planeOut").innerHTML = [
+    `<span><b>σ</b> ${S.sigma}  <b>regime</b> ${S.regime}  <b>status</b> ${S.status}</span>`,
+    `<span><b>⌊2⁴⁰ f⌋</b> ${S.freq_floor.map(fmt).join(", ")}</span>`,
+    `<span><b>points</b> ${fmt(S.points)}  <b>sup bound</b> ${fmt(S.sup_bound)} / 2⁴⁰</span>`,
+  ].join("");
+}
+
+/* ---------- 2: the fold ---------- */
+let hoverCell = null;
+function drawFold() {
+  const { ctx, w } = fit($("cFold"));
+  const G = S.grid, c = w / G;
+  ctx.clearRect(0, 0, w, w);
+  for (let cx = 0; cx < G; cx++) for (let cy = 0; cy < G; cy++) {
+    ctx.fillStyle = liftHue(S.lifts[cx * G + cy]);
+    ctx.fillRect(cx * c, w - (cy + 1) * c, Math.ceil(c), Math.ceil(c));
+  }
+  if ($("showPoints").checked) {
+    const unit = 2 ** S.coord_bits;
+    ctx.fillStyle = "rgba(255,255,255,.55)";
+    for (let i = 0; i < S.points; i++) ctx.fillRect(mod(S.x[i], unit) / unit * w - .5, w - mod(S.y[i], unit) / unit * w - .5, 1, 1);
+  }
+  if (hoverCell) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.strokeRect(hoverCell[0] * c + 1, w - (hoverCell[1] + 1) * c + 1, c - 2, c - 2); }
+  const keys = S.profile.map(([k]) => k);
+  $("liftKey").innerHTML = `<span><i style="background:${EMPTY};border:1px solid #4d4c47"></i>unvisited</span>` +
+    keys.map((k) => `<span><i style="background:${liftHue(k)}"></i>${k} lift${k > 1 ? "s" : ""}</span>`).join("");
+  $("foldOut").innerHTML = [
+    `<span><b>grid</b> ${S.grid} × ${S.grid}  <b>occupied</b> ${fmt(S.occupied)}  <b>undecided</b> ${fmt(S.undecided)}</span>`,
+    `<span><b>lift profile</b> ${profileText(S.profile)}</span>`,
+    hoverCell ? `<span><b>cell</b> (${hoverCell[0]}, ${hoverCell[1]})  <b>lifts</b> ${S.lifts[hoverCell[0] * S.grid + hoverCell[1]]}</span>` : `<span><b>cell</b> hover one</span>`,
+  ].join("");
+}
+$("cFold").addEventListener("pointermove", (e) => {
+  const r = e.currentTarget.getBoundingClientRect(), G = S.grid;
+  const cx = Math.floor((e.clientX - r.left) / r.width * G), cy = Math.floor((r.bottom - e.clientY) / r.height * G);
+  if (cx < 0 || cy < 0 || cx >= G || cy >= G) return;
+  hoverCell = [cx, cy]; drawFold();
+  showTip(e, `cell (${cx}, ${cy}): ${S.lifts[cx * G + cy]} lift(s)`);
+});
+$("cFold").addEventListener("pointerleave", () => { hoverCell = null; hideTip(); drawFold(); });
+
+/* ---------- 3: the torus ---------- */
+const VIEW0 = { yaw: 0.6, pitch: 0.95 };
+let view = { ...VIEW0 };
+function drawTorus() {
+  const { ctx, w, h } = fit($("cTorus"));
+  const G = S.grid, R = 1, rr = 0.42, scale = Math.min(w, h) / 3.2;
+  const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
+  const at = (u, v) => {
+    const a = 2 * Math.PI * u, b = 2 * Math.PI * v;
+    const X = (R + rr * Math.cos(b)) * Math.cos(a), Y = (R + rr * Math.cos(b)) * Math.sin(a), Z = rr * Math.sin(b);
+    const x1 = cy * X - sy * Y, y1 = sy * X + cy * Y;
+    return [x1, cp * y1 - sp * Z, sp * y1 + cp * Z];
+  };
+  const quads = [];
+  for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) {
+    const p = [at(i / G, j / G), at((i + 1) / G, j / G), at((i + 1) / G, (j + 1) / G), at(i / G, (j + 1) / G)];
+    const ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2];
+    const vx = p[3][0] - p[0][0], vy = p[3][1] - p[0][1], vz = p[3][2] - p[0][2];
+    const nz = ux * vy - uy * vx, nn = Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, nz) || 1;
+    quads.push({ p, depth: p[0][2] + p[2][2], shade: 0.35 + 0.65 * Math.abs(nz / nn), k: S.lifts[i * G + j] });
+  }
+  quads.sort((a, b) => a.depth - b.depth);
+  ctx.clearRect(0, 0, w, h);
+  for (const q of quads) {
+    ctx.beginPath();
+    q.p.forEach(([x, y], n) => (n ? ctx.lineTo : ctx.moveTo).call(ctx, w / 2 + scale * x, h / 2 - scale * y));
+    ctx.closePath();
+    ctx.fillStyle = liftHue(q.k);
+    ctx.globalAlpha = 1; ctx.fill();
+    ctx.fillStyle = `rgba(0,0,0,${(1 - q.shade).toFixed(3)})`; ctx.fill();
+  }
+}
+(() => {
+  const c = $("cTorus"); let drag = null;
+  c.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; c.setPointerCapture(e.pointerId); });
+  c.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    view.yaw += (e.clientX - drag[0]) * 0.01; view.pitch = Math.max(-1.5, Math.min(1.5, view.pitch + (e.clientY - drag[1]) * 0.01));
+    drag = [e.clientX, e.clientY]; drawTorus();
+  });
+  c.addEventListener("pointerup", () => { drag = null; });
+  c.addEventListener("keydown", (e) => {
+    const step = { ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, -0.1], ArrowDown: [0, 0.1] }[e.key];
+    if (!step) return;
+    e.preventDefault(); view.yaw += step[0]; view.pitch = Math.max(-1.5, Math.min(1.5, view.pitch + step[1])); drawTorus();
+  });
+  $("resetTorus").addEventListener("click", () => { view = { ...VIEW0 }; drawTorus(); });
+})();
+
+/* ---------- 4: the corpus atlas ---------- */
+const rows = DATA.corpus.rows.map((r) => {
+  const F = r.slice(3, 6), total = F[0] + F[1] + F[2];
+  return { index: r[0], sigma: r[1], regime: r[2], profile: r[6], f: F.map((x) => x / total), key: `${F},${r[2]}` };
+});
+/* Display aggregation only: specimens with the same frequency floors and regime share one marker. */
+const groups = [...rows.reduce((m, r) => m.set(r.key, [...(m.get(r.key) || []), r]), new Map()).values()]
+  .map((members) => ({ ...members[0], members })).sort((a, b) => b.members.length - a.members.length);
+const shown = new Set(DATA.corpus.regimes);
+const counts = Object.fromEntries(DATA.corpus.regimes.map((g) => [g, rows.filter((r) => r.regime === g).length]));
+const places = Object.fromEntries(DATA.corpus.regimes.map((g) => [g, groups.filter((r) => r.regime === g).length]));
+$("regimeKey").innerHTML = DATA.corpus.regimes.map((g) =>
+  `<label><input type="checkbox" data-regime="${g}" checked> <i style="background:${DATA.hues.regimes[g]}"></i>${g} (${fmt(counts[g])} at ${fmt(places[g])} points)</label>`).join("");
+$("regimeKey").addEventListener("change", (e) => { const g = e.target.dataset.regime; e.target.checked ? shown.add(g) : shown.delete(g); drawAtlas(); });
+const ref = DATA.corpus.refused;
+$("refusedNote").textContent = `${fmt(ref.count)} further specimens are refused by the bundle (` +
+  Object.entries(ref.regimes).map(([g, n]) => `${g}: ${fmt(n)}`).join(", ") + `): ${ref.reasons.join("; ")}. They are not drawn.`;
+let picked = null;
+/* Corners: f₀ bottom left, f₁ bottom right, f₂ top. A point is the frequency-weighted mean of the corners. */
+function corners(w, h) {
+  const pad = 34, side = Math.min(w - 2 * pad, (h - 2 * pad) * 2 / Math.sqrt(3)), tall = side * Math.sqrt(3) / 2;
+  const x0 = (w - side) / 2, yb = (h + tall) / 2;
+  return [[x0, yb], [x0 + side, yb], [x0 + side / 2, yb - tall]];
+}
+const at = (f, C) => [0, 1].map((d) => f[0] * C[0][d] + f[1] * C[1][d] + f[2] * C[2][d]);
+const radius = (p, w) => Math.max(1.2, w / 420 * Math.sqrt(p.members.length));
+function drawAtlas() {
+  const { ctx, w, h } = fit($("cAtlas"));
+  const C = corners(w, h);
+  ctx.clearRect(0, 0, w, h);
+  ctx.lineWidth = 1; ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.fillStyle = "#8f8d87";
+  for (let i = 0; i < 3; i++) for (let t = 1; t < 10; t++) {
+    /* The line f_i = t/10 runs between the two edges that meet at corner i. */
+    const f = (j) => { const v = [0, 0, 0]; v[i] = t / 10; v[j] = 1 - t / 10; return at(v, C); };
+    const j = (i + 1) % 3, k = (i + 2) % 3, [a, b] = [f(j), f(k)];
+    ctx.strokeStyle = t % 2 ? "#2a2a28" : "#3a3a37";
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    if (t % 2 === 0) { ctx.textAlign = "center"; ctx.fillText(`f${"₀₁₂"[i]} ${(t / 10).toFixed(1)}`, ...[0, 1].map((d) => a[d] + (a[d] - (C[0][d] + C[1][d] + C[2][d]) / 3) * 0.08)); }
+  }
+  ctx.strokeStyle = "#8f8d87"; ctx.beginPath(); ctx.moveTo(...C[0]); ctx.lineTo(...C[1]); ctx.lineTo(...C[2]); ctx.closePath(); ctx.stroke();
+  ctx.fillStyle = "#f4f3f0"; ctx.font = "13px ui-monospace, Menlo, monospace";
+  [["f₀ = 1", 0, -2, 18], ["f₁ = 1", 1, 2, 18], ["f₂ = 1", 2, 0, -10]].forEach(([t, i, dx, dy]) => {
+    ctx.textAlign = dx < 0 ? "left" : dx > 0 ? "right" : "center"; ctx.fillText(t, C[i][0] + dx, C[i][1] + dy);
+  });
+  ctx.strokeStyle = "#121211";
+  for (const p of [...groups].reverse()) {
+    if (!shown.has(p.regime)) continue;
+    const [x, y] = at(p.f, C);
+    ctx.fillStyle = DATA.hues.regimes[p.regime];
+    ctx.beginPath(); ctx.arc(x, y, radius(p, w), 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  }
+  if (picked) { const [x, y] = at(picked.f, C); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, radius(picked, w) + 3, 0, 2 * Math.PI); ctx.stroke(); }
+}
+function nearest(e) {
+  const b = $("cAtlas").getBoundingClientRect(), C = corners(b.width, b.height);
+  const mx = e.clientX - b.left, my = e.clientY - b.top;
+  let best = null, d = Infinity;
+  for (const p of groups) {
+    if (!shown.has(p.regime)) continue;
+    const [x, y] = at(p.f, C), q = Math.hypot(x - mx, y - my) - radius(p, b.width);
+    if (q < Math.min(d, 8)) { d = q; best = p; }
+  }
+  return best;
+}
+const SHOWN = 12;
+const freqText = (p) => `(${p.f.map((x) => x.toFixed(6)).join(", ")})`;
+function describe(p) {
+  const more = p.members.length - SHOWN;
+  return [`<span><b>f ≈</b> ${freqText(p)}  <b>regime</b> ${p.regime}  <b>specimens</b> ${p.members.length}</span>`,
+    ...p.members.slice(0, SHOWN).map((m) => `<span><b>#${m.index}</b> ${m.sigma.padEnd(14)} <b>lifts</b> ${profileText(m.profile)}</span>`),
+    ...(more > 0 ? [`<span><b>and ${more} more</b></span>`] : [])].join("");
+}
+$("cAtlas").addEventListener("pointermove", (e) => {
+  const p = nearest(e);
+  if (!p) return hideTip();
+  showTip(e, `${p.members.length} specimen${p.members.length > 1 ? "s" : ""} · ${p.regime}\nf ≈ ${freqText(p)}\n#${p.index}  ${p.sigma}  lifts ${profileText(p.profile)}${p.members.length > 1 ? "\n… tap for all" : ""}`);
+});
+$("cAtlas").addEventListener("pointerleave", hideTip);
+$("cAtlas").addEventListener("click", (e) => { picked = nearest(e); $("atlasOut").innerHTML = picked ? describe(picked) : "hover a point"; drawAtlas(); });
+
+/* ---------- wiring ---------- */
+function drawAll() { drawPlane(); drawFold(); drawTorus(); drawAtlas(); }
+pick.addEventListener("change", () => { S = DATA.specimens[+pick.value]; hoverCell = null; drawPlane(); drawFold(); drawTorus(); updateMeta(); });
+function updateMeta() { $("pickMeta").textContent = `${S.regime} · ${fmt(S.points)} points · ${S.grid}² grid` + ""; }
+$("showLattice").addEventListener("change", drawPlane);
+$("showPoints").addEventListener("change", drawFold);
+let resizeTimer;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(drawAll, 120); });
+updateMeta();
+drawAll();
+</script>
+</body>
+</html>

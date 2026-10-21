@@ -1,9 +1,10 @@
 # Pages
 
-Four surfaces are self-contained HTML pages rather than manim scenes: an
+Five surfaces are self-contained HTML pages rather than manim scenes: an
 atlas, an interactive wake explorer, a six-scene tour of the satellite
-bulbs, and pisot-substitution-conjecture-research's Rauzy representability
-map, copied byte for byte and stamped. Each is a `[[page]]` entry in
+bulbs, pisot-substitution-conjecture-research's Rauzy representability
+map, copied byte for byte and stamped, and that repository's exact
+Rauzy-torus evidence bundle, drawn in four views. Each is a `[[page]]` entry in
 [`vizops/sources.toml`](https://github.com/larsbx/math-vizops/blob/main/vizops/sources.toml),
 built into `out/<id>.html` by `python -m vizops page <id>`, and never
 committed. Open the file in a browser; [[Rendering and viewing]] covers the
@@ -54,5 +55,15 @@ republish it when its sources move.
 ![PSC Rauzy representability](images/psc-rauzy-representability.png)
 
 > The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp.
+
+### PSC Rauzy fractals on the 2-torus
+
+`python -m vizops page psc-rauzy-torus` — reads [`evidence/rauzy-torus-2026-10-21/named.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/named.jsonl) in `larsbx/pisot-substitution-conjecture-research`, [`evidence/rauzy-torus-2026-10-21/corpus.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/corpus.jsonl) in `larsbx/pisot-substitution-conjecture-research`, [`evidence/rauzy-torus-2026-10-21/SHA256SUMS`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/SHA256SUMS) in `larsbx/pisot-substitution-conjecture-research`.
+
+**View it:** [PSC Rauzy fractals on the 2-torus](https://claude.ai/artifact/2w18PosvJWmAnVWUiTx69P) — a published build, private to its owner until shared.
+
+![PSC Rauzy fractals on the 2-torus](images/psc-rauzy-torus.png)
+
+> Points, subtile letters, certified frequency floors and lift profiles are that repository's exact kernel output, replayed there by an independent oracle; the bundle is diagnostic and a lift profile certifies no covering degree. The fold of points, the torus embedding and the frequency-triangle placement are display aids.
 
 <!-- END generated page gallery -->
