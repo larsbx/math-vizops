@@ -98,3 +98,12 @@ path = "docs/rauzy-representability-2026-10-08.html"
 builder = "rauzy"
 artifact = "https://claude.ai/artifact/6gdPGTXbt68XLNdQ4KqSbt"
 note = "The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp."
+
+[[page]]
+id = "psc-rauzy-torus"
+title = "PSC Rauzy fractals on the torus"
+repo = "larsbx/pisot-substitution-conjecture-research"
+path = "evidence/rauzy-torus-2026-10-21/named.jsonl"
+builder = "torus"
+also = ["larsbx/pisot-substitution-conjecture-research:evidence/rauzy-torus-2026-10-21/corpus.jsonl"]
+note = "Certified frequency floors, discrepancy enclosures and lift profiles are that repository's kernel/psc/rauzy_torus.mojo output, replayed by its independent oracle; the bundle is diagnostic there and a lift profile certifies no covering degree. The fold mod Z², the torus surface and the rotation atlas are display aids drawn here."

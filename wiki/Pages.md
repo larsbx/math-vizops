@@ -1,9 +1,10 @@
 # Pages
 
-Four surfaces are self-contained HTML pages rather than manim scenes: an
+Five surfaces are self-contained HTML pages rather than manim scenes: an
 atlas, an interactive wake explorer, a six-scene tour of the satellite
-bulbs, and pisot-substitution-conjecture-research's Rauzy representability
-map, copied byte for byte and stamped. Each is a `[[page]]` entry in
+bulbs, pisot-substitution-conjecture-research's Rauzy representability
+map, copied byte for byte and stamped, and its Rauzy torus evidence bundle,
+transcribed into four views. Each is a `[[page]]` entry in
 [`vizops/sources.toml`](https://github.com/larsbx/math-vizops/blob/main/vizops/sources.toml),
 built into `out/<id>.html` by `python -m vizops page <id>`, and never
 committed. Open the file in a browser; [[Rendering and viewing]] covers the
@@ -54,5 +55,13 @@ republish it when its sources move.
 ![PSC Rauzy representability](images/psc-rauzy-representability.png)
 
 > The classification of the closed claims and the figures are that repository's page, copied byte for byte; it is an interpretive map with no ledger status there, and vizops adds only the stamp.
+
+### PSC Rauzy fractals on the torus
+
+`python -m vizops page psc-rauzy-torus` — reads [`evidence/rauzy-torus-2026-10-21/named.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/named.jsonl) in `larsbx/pisot-substitution-conjecture-research`, [`evidence/rauzy-torus-2026-10-21/corpus.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-torus-2026-10-21/corpus.jsonl) in `larsbx/pisot-substitution-conjecture-research`.
+
+![PSC Rauzy fractals on the torus](images/psc-rauzy-torus.png)
+
+> Certified frequency floors, discrepancy enclosures and lift profiles are that repository's kernel/psc/rauzy_torus.mojo output, replayed by its independent oracle; the bundle is diagnostic there and a lift profile certifies no covering degree. The fold mod Z², the torus surface and the rotation atlas are display aids drawn here.
 
 <!-- END generated page gallery -->

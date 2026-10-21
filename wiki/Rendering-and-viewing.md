@@ -67,7 +67,7 @@ python -m vizops wiki --publish
 
 ## Pages
 
-Four surfaces are HTML pages rather than manim scenes — see [[Pages]] for
+Five surfaces are HTML pages rather than manim scenes — see [[Pages]] for
 what each draws. Each lands at `out/<id>.html`; open it in a browser.
 
 ```sh
@@ -76,6 +76,7 @@ python -m vizops page mandelbrot-atlas --dataset d.json # or its saved output
 python -m vizops page wake-to-mandelbrot                # calls the vendored rational_dynamics_py; no checkout
 python -m vizops page bulbs-and-ford-circles            # transcribes four committed certificate and data files
 python -m vizops page psc-rauzy-representability       # copies the PSC page byte for byte and stamps it
+python -m vizops page psc-rauzy-torus                  # transcribes the PSC Rauzy torus evidence bundle
 ```
 
 For the atlas, no `pixi` and no `--dataset` is `inconclusive`; a missing
@@ -83,7 +84,8 @@ checkout, a malformed dataset or a traced position that disagrees with its
 exact type is `refused` and writes nothing. For the wake page, a vendored
 copy that has drifted from its `vendored.toml` pin, or one that no longer
 answers as the page reads it, is `refused`; for Bulbs & Ford Circles, so is a missing file, another schema, or
-centre and antipode certificates that disagree about which bulbs exist — see
+centre and antipode certificates that disagree about which bulbs exist; for the Rauzy torus page, so is a record of another schema
+or one whose lift histogram disagrees with its own cells — see
 [[Outcomes]].
 
 The wake page's 3/7 still:
