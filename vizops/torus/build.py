@@ -94,6 +94,8 @@ def _lacks(record: dict, fields: tuple[str, ...], label: str) -> None:
 def _floors(record: dict, label: str) -> list[int]:
     if len(record["freq_floor"]) != len(ALPHABET):
         raise SourceError(f"{label}: {len(record['freq_floor'])} frequency floors, not {len(ALPHABET)} frequency floors")
+    if not all(type(f) is int for f in record["freq_floor"]):
+        raise SourceError(f"{label}: frequency floors that are not integers")
     return record["freq_floor"]
 
 
@@ -117,10 +119,15 @@ def _specimen(r: dict) -> dict[str, Any]:
         raise SourceError(f"{label}: {len(r['lifts'])} lift counts for a {grid} x {grid} grid")
     if (1 << bits) % grid:
         raise SourceError(f"{label}: grid {grid} does not divide 2^{bits}, so a folded point has no cell")
+    profile = _profile(r, label)
+    # The profile and the occupied count are summaries of the same cells; a page showing both must not contradict itself.
+    if sorted(Counter(k for k in r["lifts"] if k).items()) != [tuple(p) for p in profile] \
+            or r["occupied"] != sum(c for _, c in profile):
+        raise SourceError(f"{label}: lift_keys, lift_counts and occupied disagree with its lifts")
     return {"name": r["name"], "sigma": "/".join(r["sigma"]), "regime": r["regime"], "status": r["status"],
             "freq_floor": _floors(r, label), "points": points, "sup_bound": r["sup_bound"], "coord_bits": bits,
             "grid": grid, "undecided": r["undecided"], "occupied": r["occupied"],
-            "profile": _profile(r, label), "x": r["x"], "y": r["y"], "letter": r["letter"], "lifts": r["lifts"]}
+            "profile": profile, "x": r["x"], "y": r["y"], "letter": r["letter"], "lifts": r["lifts"]}
 
 
 def _summary(r: dict) -> list[Any]:
@@ -144,9 +151,12 @@ def transcribe(named: list[dict], corpus: list[dict]) -> dict[str, Any]:
     if len(scale) > 1:
         raise SourceError(f"records disagree about scale_bits: {sorted(scale)}")
     rows = [_summary(r) for r in corpus if r["status"] == "diagnostic"]
+    specimens = [_specimen(r) for r in named if r["status"] == "diagnostic"]
+    if not specimens:
+        raise SourceError("named.jsonl holds no diagnostic specimen, so there is nothing to draw")
     return {
-        "scale_bits": scale.pop() if scale else None,
-        "specimens": [_specimen(r) for r in named if r["status"] == "diagnostic"],
+        "scale_bits": scale.pop(),
+        "specimens": specimens,
         "controls": [{"name": r["name"], "sigma": "/".join(r["sigma"]), "regime": r["regime"], "reason": r["reason"]}
                      for r in named if r["status"] == "refused"],
         "corpus": {"rows": rows, "regimes": sorted({row[2] for row in rows}),

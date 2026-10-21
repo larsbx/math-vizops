@@ -147,6 +147,9 @@ def test_a_file_edited_after_its_digest_was_taken_is_refused(estate):
     (specimen(grid=3, lifts=[0] * 9), "does not divide"),
     (specimen(lift_counts=[2]), "lift_keys"),
     (specimen(freq_floor=[1, 2]), "3 frequency floors"),
+    (specimen(freq_floor=[1, 2, "3"]), "not integers"),
+    (specimen(lift_counts=[999, 1]), "disagree with its lifts"),
+    (specimen(occupied=4), "disagree with its lifts"),
     ({k: v for k, v in specimen().items() if k != "lifts"}, "lifts"),
 ])
 def test_a_record_of_another_shape_is_refused(record, reason):
@@ -158,6 +161,12 @@ def test_a_record_of_another_shape_is_refused(record, reason):
 def test_a_corpus_summary_without_three_floors_is_refused():
     with pytest.raises(SourceError, match="3 frequency floors"):
         transcribe([], records(lines(summary(0, freq_floor=[1, 2])), CORPUS))
+
+
+def test_a_bundle_with_nothing_to_draw_is_refused(estate, tmp_path):
+    outcome = build(PAGE, estate(bundle(named=lines(control()))), out=tmp_path / "out.html")
+    assert isinstance(outcome, Refused) and "no diagnostic specimen" in outcome.reason
+    assert not (tmp_path / "out.html").exists()
 
 
 def test_a_corpus_index_given_twice_is_refused():
