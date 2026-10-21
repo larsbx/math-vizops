@@ -92,7 +92,8 @@ def test_every_field_is_transcribed_and_no_status_is_decided_here():
                                  "regime": "nonunimodular", "reason": REASON}]
     assert data["scale_bits"] == 40
     assert data["corpus"] == {
-        "rows": [[0, "1/2/01", "unimodular-real", 269514856189, 472965601848, [[1, 104], [2, 532], [3, 372], [4, 16]]]],
+        "rows": [[0, "1/2/01", "unimodular-real", 269514856189, 472965601848, 357031169738,
+                  [[1, 104], [2, 532], [3, 372], [4, 16]]]],
         "regimes": ["unimodular-real"],
         "refused": {"count": 1, "regimes": {"nonunimodular": 1}, "reasons": [REASON]},
     }
@@ -145,12 +146,18 @@ def test_a_file_edited_after_its_digest_was_taken_is_refused(estate):
     (specimen(lifts=[1, 0, 2]), "2 x 2 grid"),
     (specimen(grid=3, lifts=[0] * 9), "does not divide"),
     (specimen(lift_counts=[2]), "lift_keys"),
+    (specimen(freq_floor=[1, 2]), "3 frequency floors"),
     ({k: v for k, v in specimen().items() if k != "lifts"}, "lifts"),
 ])
 def test_a_record_of_another_shape_is_refused(record, reason):
     with pytest.raises(SourceError) as refusal:
         transcribe(records(lines(record), NAMED), [])
     assert reason in str(refusal.value)
+
+
+def test_a_corpus_summary_without_three_floors_is_refused():
+    with pytest.raises(SourceError, match="3 frequency floors"):
+        transcribe([], records(lines(summary(0, freq_floor=[1, 2])), CORPUS))
 
 
 def test_a_corpus_index_given_twice_is_refused():

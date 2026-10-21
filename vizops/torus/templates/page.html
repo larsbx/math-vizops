@@ -126,17 +126,20 @@ footer code { font: 12px var(--mono); color: var(--ink); word-break: break-all; 
   </section>
 
   <section id="atlas">
-    <h2><span class="no">4</span>The corpus, by rotation vector</h2>
+    <h2><span class="no">4</span>The corpus, by letter frequency</h2>
     <div class="stage">
-      <canvas id="cAtlas" width="640" height="640" tabindex="0" role="img" aria-label="Rotation vectors of the corpus specimens on the unit square"></canvas>
+      <canvas id="cAtlas" width="640" height="590" tabindex="0" role="img" aria-label="Ternary plot of the corpus specimens by their three letter frequencies"></canvas>
       <div class="legend" id="regimeKey"></div>
     </div>
     <div class="notes">
-      <p>The unimodular specimens of the standing corpus, at their rotation vectors ρ<sub>σ</sub> on
-        T² = [0, 1)², coloured by regime as the bundle names it. Specimens sharing a rotation vector share a
-        marker, its area proportional to their number. Hover or tap one for its specimens and their lift
-        profiles, copied as written.</p>
-      <div class="eq">ρ_σ = −(f₀, f₁) mod ℤ²,  placed at ((2⁴⁰ − F_i) mod 2⁴⁰) / 2⁴⁰</div>
+      <p>The unimodular specimens of the standing corpus, placed by their three letter frequencies
+        (f₀, f₁, f₂), which sum to 1: each corner is one letter, and a specimen sits nearer a corner the more often
+        its fixed point uses that letter. Colour is the regime, as the bundle names it. Specimens with the same
+        frequency floors share a marker, its area proportional to their number. Hover or tap one for its specimens
+        and their lift profiles, copied as written.</p>
+      <div class="eq">F_i = ⌊2⁴⁰ f_i⌋,  placed at F_i / (F₀ + F₁ + F₂)</div>
+      <p>The rotation of view 2 is ρ<sub>σ</sub> = −(f₀, f₁) mod ℤ², so this triangle is also a chart of the
+        rotations; the placement is display arithmetic on the certified floors, off by at most 3 · 2⁻⁴⁰.</p>
       <p id="refusedNote"></p>
       <div class="readout" id="atlasOut">hover a point</div>
     </div>
@@ -297,8 +300,10 @@ function drawTorus() {
 })();
 
 /* ---------- 4: the corpus atlas ---------- */
-const rows = DATA.corpus.rows.map((r) => ({ index: r[0], sigma: r[1], regime: r[2], profile: r[5],
-  u: mod(SCALE - r[3], SCALE) / SCALE, v: mod(SCALE - r[4], SCALE) / SCALE, key: `${r[3]},${r[4]},${r[2]}` }));
+const rows = DATA.corpus.rows.map((r) => {
+  const F = r.slice(3, 6), total = F[0] + F[1] + F[2];
+  return { index: r[0], sigma: r[1], regime: r[2], profile: r[6], f: F.map((x) => x / total), key: `${F},${r[2]}` };
+});
 /* Display aggregation only: specimens with the same frequency floors and regime share one marker. */
 const groups = [...rows.reduce((m, r) => m.set(r.key, [...(m.get(r.key) || []), r]), new Map()).values()]
   .map((members) => ({ ...members[0], members })).sort((a, b) => b.members.length - a.members.length);
@@ -306,48 +311,70 @@ const shown = new Set(DATA.corpus.regimes);
 const counts = Object.fromEntries(DATA.corpus.regimes.map((g) => [g, rows.filter((r) => r.regime === g).length]));
 const places = Object.fromEntries(DATA.corpus.regimes.map((g) => [g, groups.filter((r) => r.regime === g).length]));
 $("regimeKey").innerHTML = DATA.corpus.regimes.map((g) =>
-  `<label><input type="checkbox" data-regime="${g}" checked> <i style="background:${DATA.hues.regimes[g]}"></i>${g} (${fmt(counts[g])} at ${fmt(places[g])} ρ)</label>`).join("");
+  `<label><input type="checkbox" data-regime="${g}" checked> <i style="background:${DATA.hues.regimes[g]}"></i>${g} (${fmt(counts[g])} at ${fmt(places[g])} points)</label>`).join("");
 $("regimeKey").addEventListener("change", (e) => { const g = e.target.dataset.regime; e.target.checked ? shown.add(g) : shown.delete(g); drawAtlas(); });
 const ref = DATA.corpus.refused;
 $("refusedNote").textContent = `${fmt(ref.count)} further specimens are refused by the bundle (` +
   Object.entries(ref.regimes).map(([g, n]) => `${g}: ${fmt(n)}`).join(", ") + `): ${ref.reasons.join("; ")}. They are not drawn.`;
 let picked = null;
+/* Corners: f₀ bottom left, f₁ bottom right, f₂ top. A point is the frequency-weighted mean of the corners. */
+function corners(w, h) {
+  const pad = 34, side = Math.min(w - 2 * pad, (h - 2 * pad) * 2 / Math.sqrt(3)), tall = side * Math.sqrt(3) / 2;
+  const x0 = (w - side) / 2, yb = (h + tall) / 2;
+  return [[x0, yb], [x0 + side, yb], [x0 + side / 2, yb - tall]];
+}
+const at = (f, C) => [0, 1].map((d) => f[0] * C[0][d] + f[1] * C[1][d] + f[2] * C[2][d]);
+const radius = (p, w) => Math.max(1.2, w / 420 * Math.sqrt(p.members.length));
 function drawAtlas() {
-  const { ctx, w } = fit($("cAtlas"));
-  ctx.clearRect(0, 0, w, w);
-  ctx.strokeStyle = "#4d4c47"; ctx.lineWidth = 1;
-  for (let t = 1; t < 4; t++) { ctx.beginPath(); ctx.moveTo(t * w / 4, 0); ctx.lineTo(t * w / 4, w); ctx.moveTo(0, t * w / 4); ctx.lineTo(w, t * w / 4); ctx.stroke(); }
-  ctx.strokeStyle = "#121211"; ctx.lineWidth = 1;
+  const { ctx, w, h } = fit($("cAtlas"));
+  const C = corners(w, h);
+  ctx.clearRect(0, 0, w, h);
+  ctx.lineWidth = 1; ctx.font = "11px ui-monospace, Menlo, monospace"; ctx.fillStyle = "#8f8d87";
+  for (let i = 0; i < 3; i++) for (let t = 1; t < 10; t++) {
+    /* The line f_i = t/10 runs between the two edges that meet at corner i. */
+    const f = (j) => { const v = [0, 0, 0]; v[i] = t / 10; v[j] = 1 - t / 10; return at(v, C); };
+    const j = (i + 1) % 3, k = (i + 2) % 3, [a, b] = [f(j), f(k)];
+    ctx.strokeStyle = t % 2 ? "#2a2a28" : "#3a3a37";
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    if (t % 2 === 0) { ctx.textAlign = "center"; ctx.fillText(`f${"₀₁₂"[i]} ${(t / 10).toFixed(1)}`, ...[0, 1].map((d) => a[d] + (a[d] - (C[0][d] + C[1][d] + C[2][d]) / 3) * 0.08)); }
+  }
+  ctx.strokeStyle = "#8f8d87"; ctx.beginPath(); ctx.moveTo(...C[0]); ctx.lineTo(...C[1]); ctx.lineTo(...C[2]); ctx.closePath(); ctx.stroke();
+  ctx.fillStyle = "#f4f3f0"; ctx.font = "13px ui-monospace, Menlo, monospace";
+  [["f₀ = 1", 0, -2, 18], ["f₁ = 1", 1, 2, 18], ["f₂ = 1", 2, 0, -10]].forEach(([t, i, dx, dy]) => {
+    ctx.textAlign = dx < 0 ? "left" : dx > 0 ? "right" : "center"; ctx.fillText(t, C[i][0] + dx, C[i][1] + dy);
+  });
+  ctx.strokeStyle = "#121211";
   for (const p of [...groups].reverse()) {
     if (!shown.has(p.regime)) continue;
+    const [x, y] = at(p.f, C);
     ctx.fillStyle = DATA.hues.regimes[p.regime];
-    ctx.beginPath(); ctx.arc(p.u * w, w - p.v * w, radius(p, w), 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, radius(p, w), 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
   }
-  if (picked) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(picked.u * w, w - picked.v * w, radius(picked, w) + 3, 0, 2 * Math.PI); ctx.stroke(); }
+  if (picked) { const [x, y] = at(picked.f, C); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, radius(picked, w) + 3, 0, 2 * Math.PI); ctx.stroke(); }
 }
-const radius = (p, w) => Math.max(1.5, w / 420) * Math.sqrt(p.members.length);
 function nearest(e) {
-  const c = $("cAtlas"), b = c.getBoundingClientRect();
-  const u = (e.clientX - b.left) / b.width, v = (b.bottom - e.clientY) / b.height;
+  const b = $("cAtlas").getBoundingClientRect(), C = corners(b.width, b.height);
+  const mx = e.clientX - b.left, my = e.clientY - b.top;
   let best = null, d = Infinity;
   for (const p of groups) {
     if (!shown.has(p.regime)) continue;
-    const q = Math.hypot(p.u - u, p.v - v) * b.width - radius(p, b.width);
+    const [x, y] = at(p.f, C), q = Math.hypot(x - mx, y - my) - radius(p, b.width);
     if (q < Math.min(d, 8)) { d = q; best = p; }
   }
   return best;
 }
 const SHOWN = 12;
+const freqText = (p) => `(${p.f.map((x) => x.toFixed(6)).join(", ")})`;
 function describe(p) {
   const more = p.members.length - SHOWN;
-  return [`<span><b>ρ ≈</b> (${p.u.toFixed(6)}, ${p.v.toFixed(6)})  <b>regime</b> ${p.regime}  <b>specimens</b> ${p.members.length}</span>`,
+  return [`<span><b>f ≈</b> ${freqText(p)}  <b>regime</b> ${p.regime}  <b>specimens</b> ${p.members.length}</span>`,
     ...p.members.slice(0, SHOWN).map((m) => `<span><b>#${m.index}</b> ${m.sigma.padEnd(14)} <b>lifts</b> ${profileText(m.profile)}</span>`),
     ...(more > 0 ? [`<span><b>and ${more} more</b></span>`] : [])].join("");
 }
 $("cAtlas").addEventListener("pointermove", (e) => {
   const p = nearest(e);
   if (!p) return hideTip();
-  showTip(e, `${p.members.length} specimen${p.members.length > 1 ? "s" : ""} · ${p.regime}\n#${p.index}  ${p.sigma}  lifts ${profileText(p.profile)}${p.members.length > 1 ? "\n… tap for all" : ""}`);
+  showTip(e, `${p.members.length} specimen${p.members.length > 1 ? "s" : ""} · ${p.regime}\nf ≈ ${freqText(p)}\n#${p.index}  ${p.sigma}  lifts ${profileText(p.profile)}${p.members.length > 1 ? "\n… tap for all" : ""}`);
 });
 $("cAtlas").addEventListener("pointerleave", hideTip);
 $("cAtlas").addEventListener("click", (e) => { picked = nearest(e); $("atlasOut").innerHTML = picked ? describe(picked) : "hover a point"; drawAtlas(); });

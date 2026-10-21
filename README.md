@@ -100,13 +100,14 @@ python -m vizops page psc-rauzy-torus
   Rauzy-torus evidence bundle, `evidence/rauzy-torus-2026-10-21/`, in four
   views: the fractal in `H`-coordinates coloured by subtile, its fold onto
   `T²` coloured by lift count, the same fold on an embedded torus, and the
-  corpus by rotation vector. Points, letters, certified frequency floors and
-  lift profiles are transcribed field for field by `vizops/torus/build.py`;
-  folding a point, embedding the torus and placing a rotation vector are the
-  page's display arithmetic. The bundle's status is `diagnostic` and the page
-  says so: a lift profile certifies no covering degree. A file that is
-  missing, of another schema or status, inconsistent with itself, or not the
-  bytes the bundle's own `SHA256SUMS` names is refused.
+  corpus in a ternary plot of its three letter frequencies. Points, letters,
+  certified frequency floors and lift profiles are transcribed field for field
+  by `vizops/torus/build.py`; folding a point, embedding the torus and placing
+  a specimen in the triangle are the page's display arithmetic. The bundle's
+  status is `diagnostic` and the page says so: a lift profile certifies no
+  covering degree. A file that is missing, of another schema or status,
+  inconsistent with itself, or not the bytes the bundle's own `SHA256SUMS`
+  names is refused.
 
 A page carries each source's stamp and the same caveat as a frame.
 

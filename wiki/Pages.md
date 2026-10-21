@@ -64,6 +64,6 @@ republish it when its sources move.
 
 ![PSC Rauzy fractals on the 2-torus](images/psc-rauzy-torus.png)
 
-> Points, subtile letters, certified frequency floors and lift profiles are that repository's exact kernel output, replayed there by an independent oracle; the bundle is diagnostic and a lift profile certifies no covering degree. The fold of points, the torus embedding and the rotation-vector placement are display aids.
+> Points, subtile letters, certified frequency floors and lift profiles are that repository's exact kernel output, replayed there by an independent oracle; the bundle is diagnostic and a lift profile certifies no covering degree. The fold of points, the torus embedding and the frequency-triangle placement are display aids.
 
 <!-- END generated page gallery -->

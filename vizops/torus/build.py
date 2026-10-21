@@ -15,9 +15,9 @@ feeds it, three files named in `sources.toml`:
 
 Transcription is the whole job. A record's status is copied as written, and a
 status other than `diagnostic` or `refused` is not this page's to show. Folding
-a point onto the torus, embedding the torus in space and placing a rotation
-vector are the page's own display arithmetic and it says so; the lift counts
-it colours by are the bundle's, cell for cell.
+a point onto the torus, embedding the torus in space and placing a specimen in
+the frequency triangle are the page's own display arithmetic and it says so;
+the lift counts it colours by are the bundle's, cell for cell.
 
 A file that is missing, of another schema, inconsistent with itself, or not the
 bytes its SHA256SUMS names is a refusal, and nothing is written.
@@ -91,6 +91,12 @@ def _lacks(record: dict, fields: tuple[str, ...], label: str) -> None:
         raise SourceError(f"{label}: lacks {', '.join(missing)}")
 
 
+def _floors(record: dict, label: str) -> list[int]:
+    if len(record["freq_floor"]) != len(ALPHABET):
+        raise SourceError(f"{label}: {len(record['freq_floor'])} frequency floors, not {len(ALPHABET)} frequency floors")
+    return record["freq_floor"]
+
+
 def _profile(record: dict, label: str) -> list[list[int]]:
     keys, counts = record["lift_keys"], record["lift_counts"]
     if len(keys) != len(counts):
@@ -112,7 +118,7 @@ def _specimen(r: dict) -> dict[str, Any]:
     if (1 << bits) % grid:
         raise SourceError(f"{label}: grid {grid} does not divide 2^{bits}, so a folded point has no cell")
     return {"name": r["name"], "sigma": "/".join(r["sigma"]), "regime": r["regime"], "status": r["status"],
-            "freq_floor": r["freq_floor"], "points": points, "sup_bound": r["sup_bound"], "coord_bits": bits,
+            "freq_floor": _floors(r, label), "points": points, "sup_bound": r["sup_bound"], "coord_bits": bits,
             "grid": grid, "undecided": r["undecided"], "occupied": r["occupied"],
             "profile": _profile(r, label), "x": r["x"], "y": r["y"], "letter": r["letter"], "lifts": r["lifts"]}
 
@@ -120,7 +126,7 @@ def _specimen(r: dict) -> dict[str, Any]:
 def _summary(r: dict) -> list[Any]:
     label = f"corpus index {r.get('index')!r}"
     _lacks(r, SUMMARY, label)
-    return [r["index"], "/".join(r["sigma"]), r["regime"], *r["freq_floor"][:2], _profile(r, label)]
+    return [r["index"], "/".join(r["sigma"]), r["regime"], *_floors(r, label), _profile(r, label)]
 
 
 def _tally(refused: list[dict]) -> dict[str, Any]:
