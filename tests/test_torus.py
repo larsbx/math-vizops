@@ -144,7 +144,8 @@ def test_a_corpus_record_of_another_shape_is_refused(record, reason):
     ((b"", GOOD[1]), "is empty"),
     ((b"{not json\n", GOOD[1]), "line 1"),
     ((b"\xff\xfe", GOOD[1]), "UTF-8"),
-    ((jsonl(refused("named")), GOOD[1]), "no diagnostic"),
+    ((jsonl(refused("named")), GOOD[1]), "no diagnostic named"),
+    ((GOOD[0], jsonl(refused("corpus"))), "no diagnostic corpus"),
 ])
 def test_a_bundle_that_cannot_be_read_is_refused_and_nothing_is_written(estate, tmp_path, files, reason):
     out = tmp_path / "out" / "page.html"

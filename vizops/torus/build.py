@@ -135,6 +135,8 @@ def transcribe(named_text: str, corpus_text: str) -> dict[str, Any]:
     if not any(r["status"] == "diagnostic" for r in named):
         raise SourceError("no diagnostic named record to draw")
     corpus = _records(corpus_text, "corpus")
+    if not any(r["status"] == "diagnostic" for r in corpus):
+        raise SourceError("no diagnostic corpus record to draw")
     for position, record in enumerate(corpus):
         if record["index"] != position:
             raise SourceError(f"corpus line {position + 1}: index {record['index']!r}, expected {position}")
