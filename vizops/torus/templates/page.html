@@ -135,7 +135,9 @@ assigned only when the whole enclosure lies in it</div>
     <canvas id="atlas" width="640" height="640" aria-label="Corpus atlas of rotation vectors on the torus"></canvas>
     <div class="notes">
       <p>Each dot is one specimen of the standing corpus at ρ<sub>σ</sub> = −(<i>F</i><sub>0</sub>, <i>F</i><sub>1</sub>)/2<sup>scale_bits</sup> mod ℤ²,
-         from the certified floors <i>F</i><sub>i</sub> = ⌊2<sup>scale_bits</sup> <i>f</i><sub>i</sub>⌋. Specimens with the same frequencies coincide.</p>
+         from the certified floors <i>F</i><sub>i</sub> = ⌊2<sup>scale_bits</sup> <i>f</i><sub>i</sub>⌋. ρ depends only on the incidence matrix, so specimens sharing one share a point: each point is drawn as a small cluster,
+         one dot per specimen, centred on its ρ. Since <i>f</i><sub>0</sub> + <i>f</i><sub>1</sub> = 1 − <i>f</i><sub>2</sub> &lt; 1,
+         every ρ = (1 − <i>f</i><sub>0</sub>, 1 − <i>f</i><sub>1</sub>) lies above the diagonal <i>u</i> + <i>v</i> = 1; the shaded half is unreachable.</p>
       <div>
         <label class="meta" id="colour-label">Colour by</label>
         <div class="seg" id="colour" role="group" aria-labelledby="colour-label">
@@ -282,14 +284,26 @@ const atlasPoints = DATA.corpus.map(r => {
   const S = 2 ** r.scale_bits, one = r.lift_keys[0] === 1 ? r.lift_counts[0] : 0;
   return { r, u: mod1(-r.freq_floor[0], S), v: mod1(-r.freq_floor[1], S), max: r.lift_keys[r.lift_keys.length - 1], share: one / r.occupied };
 });
+// One cluster per distinct rho; the k-th specimen sits on a golden-angle spiral around it.
+const atlasGroups = [...atlasPoints.reduce((by, p) => {
+  const key = `${p.r.scale_bits}:${p.r.freq_floor[0]}:${p.r.freq_floor[1]}`;
+  return by.set(key, [...(by.get(key) || []), p]);
+}, new Map()).values()].map(members => ({ u: members[0].u, v: members[0].v, members }));
+const SPREAD = 2.4, spiral = k => [SPREAD * Math.sqrt(k) * Math.cos(k * 2.39996), SPREAD * Math.sqrt(k) * Math.sin(k * 2.39996)];
 const shareColour = t => `color-mix(in srgb, ${css("--k1")} ${Math.round(t * 100)}%, ${css("--k4")})`;
 
 function drawAtlas() {
   const canvas = document.getElementById("atlas"), [g, w] = fit(canvas), pad = 8, side = w - 2 * pad;
   g.clearRect(0, 0, w, w);
-  g.strokeStyle = css("--grid"); g.strokeRect(pad, pad, side, side);
+  g.fillStyle = css("--grid"); g.globalAlpha = 0.35;
+  g.beginPath(); g.moveTo(pad, pad); g.lineTo(pad, pad + side); g.lineTo(pad + side, pad + side); g.closePath(); g.fill();
+  g.globalAlpha = 1; g.strokeStyle = css("--grid"); g.strokeRect(pad, pad, side, side);
+  g.setLineDash([5, 4]); g.beginPath(); g.moveTo(pad, pad); g.lineTo(pad + side, pad + side); g.stroke(); g.setLineDash([]);
   const colour = p => mode === "regime" ? css(REGIME[p.r.regime] || "--ink-3") : mode === "max" ? LIFT(p.max) : shareColour(p.share);
-  for (const p of atlasPoints) { g.fillStyle = colour(p); g.beginPath(); g.arc(pad + p.u * side, pad + (1 - p.v) * side, 2.6, 0, 7); g.fill(); }
+  for (const { u, v, members } of atlasGroups) members.forEach((p, k) => {
+    const [dx, dy] = spiral(k);
+    g.fillStyle = colour(p); g.beginPath(); g.arc(pad + u * side + dx, pad + (1 - v) * side + dy, 1.5, 0, 7); g.fill();
+  });
   const regimes = [...new Set(DATA.corpus.map(r => r.regime))].sort();
   const items = mode === "regime" ? regimes.map(x => [css(REGIME[x] || "--ink-3"), `${x} · ${fmt(DATA.corpus.filter(r => r.regime === x).length)}`])
     : mode === "max" ? [...new Set(atlasPoints.map(p => p.max))].sort((a, b) => a - b).map(m => [LIFT(m), `max ${m} · ${fmt(atlasPoints.filter(p => p.max === m).length)}`])
@@ -297,22 +311,26 @@ function drawAtlas() {
   legend(document.getElementById("atlas-legend"), items);
   const shares = atlasPoints.map(p => p.share).sort((a, b) => a - b);
   document.getElementById("atlas-readout").textContent =
-    `drawn        ${fmt(DATA.corpus.length)} diagnostic specimens\nrefused      ${fmt(DATA.refused.length)}` +
+    `drawn        ${fmt(DATA.corpus.length)} diagnostic specimens at ${fmt(atlasGroups.length)} distinct ρ` +
+    `  (${Math.min(...atlasGroups.map(c => c.members.length))}–${Math.max(...atlasGroups.map(c => c.members.length))} each)\nrefused      ${fmt(DATA.refused.length)}` +
     (DATA.refused.length ? ` (${[...new Set(DATA.refused.map(r => r.reason))].join("; ")})` : "") +
     `\none-lift     min ${shares[0].toFixed(4)}  median ${shares[Math.floor((shares.length - 1) / 2)].toFixed(4)}  max ${shares[shares.length - 1].toFixed(4)}` +
-    `\n\nhover a dot for its record`;
+    `\n\nhover a cluster for its specimens`;
 }
 
 function atlasHover(event) {
   const canvas = document.getElementById("atlas"), box = canvas.getBoundingClientRect(), pad = 8, side = box.width - 2 * pad;
   const u = (event.clientX - box.left - pad) / side, v = 1 - (event.clientY - box.top - pad) / side;
-  const near = atlasPoints.filter(p => Math.hypot(p.u - u, p.v - v) * side < 6);
+  const reach = c => SPREAD * Math.sqrt(c.members.length) + 4;
+  const hit = atlasGroups.filter(c => Math.hypot(c.u - u, c.v - v) * side < reach(c))
+    .sort((a, b) => Math.hypot(a.u - u, a.v - v) - Math.hypot(b.u - u, b.v - v))[0];
   const tip = document.getElementById("tip");
-  if (!near.length) { tip.hidden = true; return; }
+  if (!hit) { tip.hidden = true; return; }
+  const near = hit.members;
   const lines = near.slice(0, 6).map(({ r }) =>
     `#${r.index}  ${r.sigma.join("/")}  ${r.regime}\n  lifts ${r.lift_keys.map((k, i) => `${k}:${r.lift_counts[i]}`).join(" ")}  of ${r.occupied} on ${r.grid}²`);
   if (near.length > 6) lines.push(`… ${near.length - 6} more here`);
-  tip.textContent = `ρ ≈ (${near[0].u.toFixed(4)}, ${near[0].v.toFixed(4)})\n` + lines.join("\n");
+  tip.textContent = `ρ ≈ (${hit.u.toFixed(4)}, ${hit.v.toFixed(4)}) · ${near.length} specimen${near.length > 1 ? "s" : ""}\n` + lines.join("\n");
   tip.hidden = false;
   tip.style.left = Math.min(event.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
   tip.style.top = Math.min(event.clientY + 14, innerHeight - tip.offsetHeight - 8) + "px";

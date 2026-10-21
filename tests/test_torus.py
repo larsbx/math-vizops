@@ -118,6 +118,8 @@ def test_the_page_embeds_the_records_and_stamps_both_files(estate, tmp_path):
     (named(undecided=-1), "undecided"),
     (refused("named", reason=""), "reason"),
     ({k: v for k, v in named().items() if k != "grid"}, "grid"),
+    (named(name=""), "no name"),
+    (named(regime=None), "regime"),
 ])
 def test_a_named_record_of_another_shape_is_refused(record, reason):
     with pytest.raises(SourceError, match=reason):
