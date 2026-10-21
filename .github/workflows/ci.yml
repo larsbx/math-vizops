@@ -75,6 +75,7 @@ jobs:
         run: |
           python -m vizops
           pytest tests/test_estate.py -q
+          python -m vizops page psc-rauzy-torus
           if [ -d ../mandelbrot-bulbs-and-ford-circles-research ]; then
             python -m vizops page wake-to-mandelbrot bulbs-and-ford-circles
           fi

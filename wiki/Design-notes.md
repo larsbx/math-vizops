@@ -77,6 +77,7 @@ class is refused rather than given a generated hue.
 | `vizops/wake/scene.py` | The canonical 3/7 wake as a typed Manim payload. |
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 | `vizops/rauzy/build.py` | The Rauzy representability page: the upstream HTML verbatim, plus its stamp. |
+| `vizops/torus/build.py` | The Rauzy torus page: an exact evidence bundle transcribed, never recomputed. |
 
 <!-- END generated module table -->
 
