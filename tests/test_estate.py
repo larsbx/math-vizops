@@ -17,7 +17,7 @@ import pytest
 
 from vizops import layout, palette
 from vizops.bridge import figure, root
-from vizops import bulbs, rauzy, torus
+from vizops import bulbs, contacts, rauzy, torus
 from vizops.atlas.build import name_components, oracle, structure_names
 from vizops.sources import load, pages
 from vizops.wake.scene import WakeCycleFigure
@@ -110,3 +110,16 @@ def test_the_real_torus_bundle_vouches_for_itself_and_transcribes():
     assert [s["name"] for s in data["specimens"]] == ["tribonacci", "flipped_tribonacci", "smith"]
     assert [c["name"] for c in data["controls"]] == ["nonunit_control"]
     assert len(data["corpus"]["rows"]) == 2628 and data["corpus"]["refused"]["count"] == 1926
+
+
+def test_the_real_contacts_bundle_vouches_for_itself_and_transcribes():
+    """Where the upstream contacts emitter changes shape, this is what fails."""
+    page = PAGES["contacts"]
+    checkout_of(page)
+    (named, named_at), (corpus, corpus_at), (sums, _) = torus.read(root(), page)
+    torus.vouched(sums, ((named_at.path, named), (corpus_at.path, corpus)))
+    data = contacts.transcribe(torus.records(named, named_at.path, contacts.SCHEMA, ("exact", "refused")),
+                               torus.records(corpus, corpus_at.path, contacts.SCHEMA, ("exact", "refused")))
+    tribonacci = next(s for s in data["specimens"] if s["name"] == "tribonacci")
+    assert len(tribonacci["verdict"]["neighbours"]) == 6
+    assert len(data["corpus"]["rows"]) + data["corpus"]["refused"] == 4554

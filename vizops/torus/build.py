@@ -49,8 +49,9 @@ SUMMARY = ("index", "sigma", "regime", "freq_floor", "points", "grid", "lift_key
 DIGEST_LINE = re.compile(r"([0-9a-f]{64}) [ *](\S+)")
 
 
-def records(raw: bytes, where: str) -> list[dict[str, Any]]:
-    """Every line of a JSONL file, each of this schema and a known status."""
+def records(raw: bytes, where: str, schema: str = SCHEMA,
+            statuses: tuple[str, ...] = STATUSES) -> list[dict[str, Any]]:
+    """Every line of a JSONL file, each of `schema` and one of `statuses`."""
     out = []
     for n, line in enumerate(raw.decode("utf-8").splitlines(), 1):
         if not line.strip():
@@ -59,12 +60,12 @@ def records(raw: bytes, where: str) -> list[dict[str, Any]]:
             record = json.loads(line)
         except ValueError as err:
             raise SourceError(f"{where} line {n} is not JSON: {err}") from None
-        if not isinstance(record, dict) or record.get("schema") != SCHEMA:
+        if not isinstance(record, dict) or record.get("schema") != schema:
             declared = record.get("schema") if isinstance(record, dict) else None
-            raise SourceError(f"{where} line {n}: schema {declared!r}, expected {SCHEMA!r}")
-        if record.get("status") not in STATUSES:
+            raise SourceError(f"{where} line {n}: schema {declared!r}, expected {schema!r}")
+        if record.get("status") not in statuses:
             raise SourceError(f"{where} line {n}: status {record.get('status')!r}; this page draws a "
-                              f"bundle whose records are {' or '.join(STATUSES)}, and nothing else")
+                              f"bundle whose records are {' or '.join(statuses)}, and nothing else")
         out.append(record)
     return out
 

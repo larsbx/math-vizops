@@ -36,7 +36,7 @@ from .wake.scene import WakeCycleFigure
 
 STILLS = surfaces.WIKI / surfaces.IMAGES
 #: The packages a `[[page]]` may name as its builder, each exporting `build`.
-BUILDERS = ("atlas", "wake", "bulbs", "rauzy", "torus")
+BUILDERS = ("atlas", "wake", "bulbs", "rauzy", "torus", "contacts")
 
 
 def report(scenes: Sequence[Scene], sources: Path | None) -> int:

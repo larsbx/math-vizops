@@ -66,4 +66,12 @@ republish it when its sources move.
 
 > Points, subtile letters, certified frequency floors and lift profiles are that repository's exact kernel output, replayed there by an independent oracle; the bundle is diagnostic and a lift profile certifies no covering degree. The fold of points, the torus embedding and the frequency-triangle placement are display aids.
 
+### PSC Rauzy tile contacts
+
+`python -m vizops page psc-rauzy-contacts` — reads [`evidence/rauzy-contacts-2026-10-22/contacts-named.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-contacts-2026-10-22/contacts-named.jsonl) in `larsbx/pisot-substitution-conjecture-research`, [`evidence/rauzy-contacts-2026-10-22/contacts-corpus.jsonl`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-contacts-2026-10-22/contacts-corpus.jsonl) in `larsbx/pisot-substitution-conjecture-research`, [`evidence/rauzy-contacts-2026-10-22/SHA256SUMS`](https://github.com/larsbx/pisot-substitution-conjecture-research/blob/main/evidence/rauzy-contacts-2026-10-22/SHA256SUMS) in `larsbx/pisot-substitution-conjecture-research`.
+
+_No still published yet._ Build the page, capture it, and commit `wiki/images/psc-rauzy-contacts.png`.
+
+> Box verdicts, contacts and lattice neighbours are that repository's exact kernel output (psc/rauzy_contacts.mojo), replayed there by an independent oracle on a different potential-overlap region. Contacts rest on the cited Siegel-Thuswaldner boundary-graph criterion, and covering degree 1 is upstream's cited consequence of a productive box, quoted and never asserted here. Translating a subtile's points by a contact is a display aid.
+
 <!-- END generated page gallery -->

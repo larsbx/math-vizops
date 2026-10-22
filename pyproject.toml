@@ -27,7 +27,7 @@ vizops = "vizops.__main__:main"
 # vendored byte-for-byte under vendor/python/ and pinned in vendored.toml. It is
 # installed under its own name from there, so this mapping is the one place
 # that makes it importable; nothing edits sys.path.
-packages = ["vizops", "vizops.atlas", "vizops.wake", "vizops.bulbs", "vizops.rauzy", "vizops.torus", "rational_dynamics_py"]
+packages = ["vizops", "vizops.atlas", "vizops.wake", "vizops.bulbs", "vizops.rauzy", "vizops.torus", "vizops.contacts", "rational_dynamics_py"]
 package-dir = {"rational_dynamics_py" = "vendor/python/rational_dynamics_py"}
 
 [tool.setuptools.package-data]
@@ -36,6 +36,7 @@ vizops = ["*.toml"]
 "vizops.wake" = ["templates/*.html"]
 "vizops.bulbs" = ["templates/*.html"]
 "vizops.torus" = ["templates/*.html"]
+"vizops.contacts" = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

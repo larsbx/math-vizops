@@ -291,6 +291,7 @@ to fold the tail at the source or to facet the figure.
 | `vizops/bulbs/build.py` | The Bulbs & Ford Circles page: certificates transcribed, never reissued. |
 | `vizops/rauzy/build.py` | The Rauzy representability page: the upstream HTML verbatim, plus its stamp. |
 | `vizops/torus/build.py` | The Rauzy torus page: an exact evidence bundle transcribed, never recomputed. |
+| `vizops/contacts/build.py` | The Rauzy contacts page: PSC's exact tile contacts and box verdicts, transcribed. |
 
 <!-- END generated module table -->
 
