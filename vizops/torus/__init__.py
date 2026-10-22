@@ -1,9 +1,9 @@
-"""PSC Rauzy torus: the research repository's exact fractal records, on T².
+"""PSC Rauzy fractals on the 2-torus: an exact evidence bundle, drawn.
 
-The points, frequencies and lift profiles are
-pisot-substitution-conjecture-research's; nothing is certified or recomputed here.
+The points, letters, frequency floors and lift profiles are
+pisot-substitution-conjecture-research's; nothing is certified or computed here.
 """
 
-from .build import SCHEMA, TEMPLATE, build, read, transcribe
+from .build import SCHEMA, TEMPLATE, build, read, records, transcribe, vouched
 
-__all__ = ["SCHEMA", "TEMPLATE", "build", "read", "transcribe"]
+__all__ = ["SCHEMA", "TEMPLATE", "build", "read", "records", "transcribe", "vouched"]

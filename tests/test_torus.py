@@ -1,111 +1,188 @@
-"""The PSC Rauzy torus page: two committed JSONL files transcribed field for field,
-and every way of not having them in the registered shape refused.
+"""The PSC Rauzy torus page: an evidence bundle transcribed field for field,
+held to the bundle's own SHA256SUMS, and every way of not having it refused.
 
-The fixtures are one named and two corpus records in the upstream shape; the real
-files are read in `test_estate.py`.
+The fixtures are a two-specimen bundle in the upstream shape; the real bundle
+is read in `test_estate.py`.
 """
 
+import hashlib
 import json
 
 import pytest
 
+from vizops.__main__ import main
 from vizops.figure import CAVEAT
 from vizops.outcome import Refused, Rendered
 from vizops.sources import SourceError, pages
-from vizops.torus import SCHEMA, build, transcribe
+from vizops.torus import SCHEMA, TEMPLATE, build, records, transcribe
 
 PAGE = next(p for p in pages() if p.id == "psc-rauzy-torus")
-NAMED_PATH, CORPUS_PATH = (path for _, path in PAGE.files())
+NAMED, CORPUS, SUMS = (path for _, path in PAGE.files())
+REASON = "the torus picture needs a unimodular incidence matrix (|det M| = 1)"
 
 
-def named(**over):
-    record = {"schema": SCHEMA, "kind": "named", "name": "tribonacci", "sigma": ["01", "02", "0"],
-              "regime": "unimodular-complex", "status": "diagnostic", "scale_bits": 40,
-              "freq_floor": [2 ** 39, 2 ** 38, 2 ** 38 - 2], "points": 3, "sup_bound": 2 ** 39,
-              "coord_bits": 16, "x": [0, -2 ** 15, 2 ** 16], "y": [0, 2 ** 14, -2 ** 16], "letter": [0, 1, 0],
-              "grid": 2, "undecided": 0, "occupied": 3, "lift_keys": [1, 2], "lift_counts": [2, 1],
-              "lifts": [1, 2, 0, 1]}
-    return {**record, **over}
+def specimen(**changes):
+    """A named diagnostic record: four points on a 2 x 2 grid."""
+    return {"schema": SCHEMA, "kind": "named", "name": "tribonacci", "sigma": ["01", "02", "0"],
+            "regime": "unimodular-complex", "status": "diagnostic", "scale_bits": 40,
+            "freq_floor": [597792391348, 325013155047, 176706081379], "points": 4,
+            "sup_bound": 920370025771, "coord_bits": 16, "x": [0, 29904, -5727, 70000],
+            "y": [0, -19373, 26791, 1], "letter": [0, 1, 0, 2], "grid": 2, "undecided": 0,
+            "occupied": 3, "lift_keys": [1, 2], "lift_counts": [2, 1], "lifts": [1, 0, 2, 1], **changes}
 
 
-def refused(**over):
+def control():
     return {"schema": SCHEMA, "kind": "named", "name": "nonunit_control", "sigma": ["011", "20", "0"],
-            "regime": "nonunimodular", "status": "refused", "reason": "needs |det M| = 1", **over}
+            "regime": "nonunimodular", "status": "refused", "reason": REASON}
 
 
-def corpus():
-    return [{"schema": SCHEMA, "kind": "corpus", "index": 0, "i": 0, "j": 3, "k": 1, "sigma": ["0", "01", "2"],
-             "regime": "unimodular-real", "status": "diagnostic", "scale_bits": 40,
-             "freq_floor": [2 ** 39, 2 ** 38, 2 ** 38 - 1], "points": 4096, "sup_bound": 1, "grid": 32,
-             "undecided": 0, "occupied": 10, "lift_keys": [1, 3], "lift_counts": [8, 2]},
-            {"schema": SCHEMA, "kind": "corpus", "index": 1, "i": 0, "j": 3, "k": 2, "sigma": ["0", "01", "22"],
-             "regime": "nonunimodular", "status": "refused", "reason": "needs |det M| = 1"}]
+def summary(index, **changes):
+    return {"schema": SCHEMA, "kind": "corpus", "index": index, "i": 1, "j": 2, "k": 4 + index,
+            "sigma": ["1", "2", "01"], "regime": "unimodular-real", "status": "diagnostic", "scale_bits": 40,
+            "freq_floor": [269514856189, 472965601848, 357031169738], "points": 4096,
+            "sup_bound": 1543830283676, "grid": 32, "undecided": 0, "occupied": 1024,
+            "lift_keys": [1, 2, 3, 4], "lift_counts": [104, 532, 372, 16], **changes}
 
 
-def jsonl(records):
-    return "".join(json.dumps(r) + "\n" for r in records).encode()
+def lines(*recs) -> bytes:
+    return "".join(json.dumps(r) + "\n" for r in recs).encode()
+
+
+def bundle(named=None, corpus=None, sums=None):
+    """The three files, keyed by path; SHA256SUMS agrees unless given."""
+    named = lines(specimen(), control()) if named is None else named
+    corpus = lines(summary(0), summary(1, status="refused", regime="nonunimodular", reason=REASON)) \
+        if corpus is None else corpus
+    if sums is None:
+        sums = "".join(f"{hashlib.sha256(raw).hexdigest()}  {path.rsplit('/', 1)[1]}\n"
+                       for path, raw in ((NAMED, named), (CORPUS, corpus))).encode()
+    return {NAMED: named, CORPUS: corpus, SUMS: sums}
 
 
 @pytest.fixture
 def estate(tmp_path):
-    def make(named_records=None, corpus_records=None, raw=None):
-        files = {NAMED_PATH: jsonl(named_records if named_records is not None else [named(), refused()]),
-                 CORPUS_PATH: jsonl(corpus_records if corpus_records is not None else corpus())}
-        files.update(raw or {})
-        for repo, path in PAGE.files():
-            target = tmp_path / "estate" / repo.split("/")[-1] / path
+    def make(files=None):
+        for path, raw in (bundle() if files is None else files).items():
+            target = tmp_path / "estate" / PAGE.checkout / path
             target.parent.mkdir(parents=True, exist_ok=True)
-            if files[path] is not None:
-                target.write_bytes(files[path])
+            target.write_bytes(raw)
         return tmp_path / "estate"
     return make
 
 
-def test_records_are_transcribed_not_recomputed():
-    data = transcribe([named(), refused()], corpus())
-    tri, control = data["named"]
-    assert tri["x"] == [0, -2 ** 15, 2 ** 16] and tri["bits"] == 16 and tri["lifts"] == [1, 2, 0, 1]
-    assert tri["freq"][:2] == [0.5, 0.25] and tri["hist"] == {1: 2, 2: 1} and tri["sup"] == 0.5
-    assert control == {"name": "nonunit_control", "sigma": ["011", "20", "0"], "regime": "nonunimodular",
-                       "status": "refused", "reason": "needs |det M| = 1"}
-    assert data["corpus"] == [[0, "0 01 2", "unimodular-real", 0.5, 0.25, 8, 10, 3],
-                              [1, "0 01 22", "nonunimodular"]]
-    assert data["corpusGrid"] == 32 and data["corpusPoints"] == 4096
+def data_of(html: str) -> dict:
+    return json.loads(html.split("const DATA = ", 1)[1].split(";\n", 1)[0])
 
 
-def test_the_page_carries_data_stamps_and_caveat(estate, tmp_path):
-    out = tmp_path / "out" / "page.html"
+def test_the_template_takes_each_placeholder_once():
+    text = TEMPLATE.read_text(encoding="utf-8")
+    assert all(text.count(mark) == 1 for mark in ("__DATA__", "__SOURCES__", "__CAVEAT__"))
+
+
+def test_every_field_is_transcribed_and_no_status_is_decided_here():
+    f = bundle()
+    data = transcribe(records(f[NAMED], NAMED), records(f[CORPUS], CORPUS))
+    one, = data["specimens"]
+    assert one == {"name": "tribonacci", "sigma": "01/02/0", "regime": "unimodular-complex",
+                   "status": "diagnostic", "freq_floor": [597792391348, 325013155047, 176706081379],
+                   "points": 4, "sup_bound": 920370025771, "coord_bits": 16, "grid": 2, "undecided": 0,
+                   "occupied": 3, "profile": [[1, 2], [2, 1]], "x": [0, 29904, -5727, 70000],
+                   "y": [0, -19373, 26791, 1], "letter": [0, 1, 0, 2], "lifts": [1, 0, 2, 1]}
+    assert data["controls"] == [{"name": "nonunit_control", "sigma": "011/20/0",
+                                 "regime": "nonunimodular", "reason": REASON}]
+    assert data["scale_bits"] == 40
+    assert data["corpus"] == {
+        "rows": [[0, "1/2/01", "unimodular-real", 269514856189, 472965601848, 357031169738,
+                  [[1, 104], [2, 532], [3, 372], [4, 16]]]],
+        "regimes": ["unimodular-real"],
+        "refused": {"count": 1, "regimes": {"nonunimodular": 1}, "reasons": [REASON]},
+    }
+
+
+def test_the_page_carries_every_source_stamp_the_caveat_and_the_status(estate, tmp_path):
+    out = tmp_path / "out.html"
     outcome = build(PAGE, estate(), out=out)
     assert isinstance(outcome, Rendered)
     html = out.read_text(encoding="utf-8")
-    assert "__DATA__" not in html and "__SOURCES__" not in html
-    assert f"{PAGE.repo}/{NAMED_PATH} @ sha256:" in html and f"{PAGE.repo}/{CORPUS_PATH} @ sha256:" in html
-    assert CAVEAT in html and '"name":"tribonacci"' in html
+    assert all(f"{repo}/{path} @ sha256:" in html for repo, path in PAGE.files())
+    assert CAVEAT in html and "certifies no covering degree" in html
+    assert data_of(html)["specimens"][0]["status"] == "diagnostic"
+    assert outcome.digest == hashlib.sha256(out.read_bytes()).hexdigest()
 
 
-@pytest.mark.parametrize("named_records, corpus_records, raw, reason", [
-    (None, None, {NAMED_PATH: None}, "no artifact"),
-    (None, None, {CORPUS_PATH: b"not json\n"}, "not JSONL"),
-    ([named(schema="psc-rauzy-torus/v0")], None, None, "does not declare schema"),
-    ([named(status="certified")], None, None, "has status 'certified'"),
-    ([refused()], None, None, "no diagnostic record"),
-    ([named(x=[0, 1])], None, None, "arrays disagree"),
-    ([named(lifts=[1, 2, 0])], None, None, "arrays disagree"),
-    ([named(lift_counts=[2])], None, None, "no longer reads"),
+def test_a_missing_file_is_refused_by_name_and_nothing_is_written(estate, tmp_path):
+    files = bundle()
+    del files[CORPUS]
+    outcome = build(PAGE, estate(files), out=tmp_path / "out.html")
+    assert isinstance(outcome, Refused) and "corpus.jsonl" in outcome.reason
+    assert not (tmp_path / "out.html").exists()
+
+
+@pytest.mark.parametrize("sums, reason", [
+    (b"0" * 64 + b"  named.jsonl\n", "disagrees with the bundle's SHA256SUMS"),
+    (b"", "is empty"),
+    (b"not a digest line\n", "not a SHA256SUMS line"),
 ])
-def test_a_source_of_another_shape_is_refused_and_nothing_is_written(
-        estate, tmp_path, named_records, corpus_records, raw, reason):
-    out = tmp_path / "out" / "page.html"
-    outcome = build(PAGE, estate(named_records, corpus_records, raw), out=out)
-    assert isinstance(outcome, Refused) and reason in outcome.reason, outcome
-    assert not out.exists()
+def test_bytes_the_bundle_does_not_vouch_for_are_refused(estate, tmp_path, sums, reason):
+    files = bundle()
+    files[SUMS] = sums
+    outcome = build(PAGE, estate(files), out=tmp_path / "out.html")
+    assert isinstance(outcome, Refused) and reason in outcome.reason
+    assert not (tmp_path / "out.html").exists()
 
 
-def test_a_dataset_is_refused(estate, tmp_path):
-    outcome = build(PAGE, estate(), dataset=tmp_path / "x.json", out=tmp_path / "p.html")
-    assert isinstance(outcome, Refused) and "drop --dataset" in outcome.reason
+def test_a_file_edited_after_its_digest_was_taken_is_refused(estate):
+    files = bundle()
+    files[NAMED] = lines(specimen(name="renamed"), control())
+    outcome = build(PAGE, estate(files))
+    assert isinstance(outcome, Refused) and "named.jsonl" in outcome.reason
 
 
-def test_transcribe_refuses_a_named_file_with_nothing_to_draw():
-    with pytest.raises(SourceError):
-        transcribe([refused()], corpus())
+@pytest.mark.parametrize("record, reason", [
+    (specimen(schema="psc-rauzy-torus/v2"), "psc-rauzy-torus/v2"),
+    (specimen(status="certified"), "status 'certified'"),
+    (specimen(x=[0, 1, 2]), "4 points"),
+    (specimen(letter=[0, 1, 0, 3]), "letter"),
+    (specimen(lifts=[1, 0, 2]), "2 x 2 grid"),
+    (specimen(grid=3, lifts=[0] * 9), "does not divide"),
+    (specimen(lift_counts=[2]), "lift_keys"),
+    (specimen(freq_floor=[1, 2]), "3 frequency floors"),
+    (specimen(freq_floor=[1, 2, "3"]), "not integers"),
+    (specimen(lift_counts=[999, 1]), "disagree with its lifts"),
+    (specimen(occupied=4), "disagree with its lifts"),
+    ({k: v for k, v in specimen().items() if k != "lifts"}, "lifts"),
+])
+def test_a_record_of_another_shape_is_refused(record, reason):
+    with pytest.raises(SourceError) as refusal:
+        transcribe(records(lines(record), NAMED), [])
+    assert reason in str(refusal.value)
+
+
+def test_a_corpus_summary_without_three_floors_is_refused():
+    with pytest.raises(SourceError, match="3 frequency floors"):
+        transcribe([], records(lines(summary(0, freq_floor=[1, 2])), CORPUS))
+
+
+def test_a_bundle_with_nothing_to_draw_is_refused(estate, tmp_path):
+    outcome = build(PAGE, estate(bundle(named=lines(control()))), out=tmp_path / "out.html")
+    assert isinstance(outcome, Refused) and "no diagnostic specimen" in outcome.reason
+    assert not (tmp_path / "out.html").exists()
+
+
+def test_a_corpus_index_given_twice_is_refused():
+    with pytest.raises(SourceError, match="index 0 twice"):
+        transcribe([], records(lines(summary(0), summary(0)), CORPUS))
+
+
+def test_a_line_that_is_not_json_is_refused_by_number():
+    with pytest.raises(SourceError, match=r"named.jsonl line 2"):
+        records(lines(specimen()) + b"{not json\n", NAMED)
+
+
+def test_a_dataset_is_refused_rather_than_ignored(estate, tmp_path):
+    assert isinstance(build(PAGE, estate(), dataset=tmp_path / "d.json"), Refused)
+
+
+def test_the_cli_builds_it(estate, tmp_path):
+    assert main(["page", PAGE.id, "--sources", str(estate()), "--out", str(tmp_path / "out")]) == 0
+    assert (tmp_path / "out" / f"{PAGE.id}.html").is_file()

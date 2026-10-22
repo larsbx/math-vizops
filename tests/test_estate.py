@@ -100,11 +100,13 @@ def test_the_real_rauzy_page_carries_its_table_and_gallery():
 
 
 
-def test_the_real_rauzy_torus_records_transcribe():
-    """Where the upstream emitter changes shape, this is what fails."""
+def test_the_real_torus_bundle_vouches_for_itself_and_transcribes():
+    """Where the bundle is regenerated or reshaped upstream, this is what fails."""
     page = PAGES["torus"]
     checkout_of(page)
-    named, corpus = (torus.read(root(), page, repo, path)[0] for repo, path in page.files())
-    data = torus.transcribe(named, corpus)
-    assert len(data["corpus"]) == 4554
-    assert any(r["name"] == "tribonacci" and r["status"] == "diagnostic" for r in data["named"])
+    (named, named_at), (corpus, corpus_at), (sums, _) = torus.read(root(), page)
+    torus.vouched(sums, ((named_at.path, named), (corpus_at.path, corpus)))
+    data = torus.transcribe(torus.records(named, named_at.path), torus.records(corpus, corpus_at.path))
+    assert [s["name"] for s in data["specimens"]] == ["tribonacci", "flipped_tribonacci", "smith"]
+    assert [c["name"] for c in data["controls"]] == ["nonunit_control"]
+    assert len(data["corpus"]["rows"]) == 2628 and data["corpus"]["refused"]["count"] == 1926
