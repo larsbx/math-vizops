@@ -97,13 +97,12 @@ def _specimen(r: dict) -> dict[str, Any]:
             "letter": r["letter"]}
 
 
-def _summary(r: dict) -> list[Any]:
-    """`[index, sigma, regime, productive, contacts, neighbours, depth]`."""
+def _summary(r: dict) -> dict[str, Any]:
     label = f"corpus index {r.get('index')!r}"
     _lacks(r, SUMMARY, label)
     v = _verdict(r, label)
-    return [r["index"], "/".join(r["sigma"]), r["regime"], v["productive"], v["contacts"],
-            len(v["neighbours"]), v["depth"]]
+    return {"index": r["index"], "sigma": "/".join(r["sigma"]), "regime": r["regime"], "productive": v["productive"],
+            "contacts": v["contacts"], "neighbours": len(v["neighbours"]), "depth": v["depth"]}
 
 
 def transcribe(named: list[dict], corpus: list[dict]) -> dict[str, Any]:

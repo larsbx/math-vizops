@@ -184,7 +184,7 @@ function drawContacts() {
 
 function drawCorpus() {
   const cv = $("cvCorpus"), [ctx, W, H] = fit(cv), rows = DATA.corpus.rows;
-  const by = new Map(); for (const r of rows) by.set(r[6], (by.get(r[6]) || 0) + 1);
+  const by = new Map(); for (const r of rows) by.set(r.neighbours, (by.get(r.neighbours) || 0) + 1);
   const keys = [...by.keys()].sort((a, b) => a - b), top = Math.max(...by.values());
   const m = { l: W * 0.1, r: W * 0.03, t: H * 0.06, b: H * 0.16 }, bw = (W - m.l - m.r) / keys.length;
   ctx.fillStyle = "#121211"; ctx.fillRect(0, 0, W, H);
@@ -199,7 +199,7 @@ function drawCorpus() {
     ctx.fillStyle = "#8f8d87"; if (keys.length < 30 || i % 2 === 0) ctx.fillText(String(k), m.l + i * bw + bw * 0.3, H - m.b + fs * 1.3);
   });
   ctx.fillText("lattice neighbours of R", m.l, H - fs * 0.5);
-  const productive = rows.filter((r) => r[3]).length;
+  const productive = rows.filter((r) => r.productive).length;
   $("roCorpus").innerHTML = `<div><b>unimodular specimens</b> ${fmt(rows.length)}</div>` +
     `<div><b>box productive</b> ${fmt(productive)} of ${fmt(rows.length)}</div>` +
     `<div><b>refused (non-unimodular)</b> ${fmt(DATA.corpus.refused)}</div>` +

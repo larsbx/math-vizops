@@ -75,7 +75,8 @@ def test_records_are_transcribed_not_recomputed():
     assert s["points"] == 3 and s["x"] == [0, 1, 2] and s["letter"] == [0, 1, 2]
     assert s["verdict"]["productive"] is True and s["verdict"]["consequence"] == CONSEQUENCE
     assert data["controls"] == [{"name": "nonunit_control", "sigma": "011/20/0", "reason": "needs |det M| = 1"}]
-    assert data["corpus"] == {"rows": [[0, "0/01/2", "unimodular-real", True, 4, 2, 8]], "refused": 1,
+    assert data["corpus"] == {"rows": [{"index": 0, "sigma": "0/01/2", "regime": "unimodular-real",
+                                         "productive": True, "contacts": 4, "neighbours": 2, "depth": 8}], "refused": 1,
                               "refusedRegimes": {"nonunimodular": 1}}
 
 
